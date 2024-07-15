@@ -1,0 +1,5 @@
+python-dateutil==2.8.2
+fastapi==0.108.0
+pymongo==4.6.2
+python-dotenv==0.19.2
+uvicorn==0.25.0

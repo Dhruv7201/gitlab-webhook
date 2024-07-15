@@ -19,4 +19,5 @@ def convert_to_ISC(date):
 
 def format_duration(seconds: float) -> str:
     td = timedelta(seconds=seconds)
+    td = str(td).split(".")[0]
     return str(td)
