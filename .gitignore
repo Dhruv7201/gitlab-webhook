@@ -43,3 +43,4 @@ test.py
 # Ignore any additional generated files you don't want to track
 *.log
 .env.local
+
