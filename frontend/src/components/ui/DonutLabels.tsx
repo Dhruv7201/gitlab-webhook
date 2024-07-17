@@ -43,7 +43,7 @@ const chartConfig = {
   },
 } as ChartConfig;
 
-export function DonutLabels() {
+export function DonutLabels(selected:boolean, project_id:str) {
   const [chartData, setChartData] = React.useState<CharData[]>([]);
   const api = import.meta.env.VITE_API_URL;
   const getColor = (data: CharData[]) => {
@@ -68,7 +68,9 @@ export function DonutLabels() {
   }, []);
 
   return (
-    <Card className="flex flex-col">
+
+    <> 
+    {selected?<Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
         <CardTitle>Pie Chart - Donut with Text</CardTitle>
       </CardHeader>
@@ -135,6 +137,7 @@ export function DonutLabels() {
           Showing total label count
         </div>
       </CardFooter>
-    </Card>
+    </Card>:<div></div>}
+    </>
   );
 }

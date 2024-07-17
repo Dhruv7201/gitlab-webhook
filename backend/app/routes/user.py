@@ -38,7 +38,7 @@ async def read_user(db=Depends(get_connection)):
             'name': project['name']
         })
 
-    
+    print(user_response)
     return {"status": True, "data": user_response}
 
 @router.get("/work/{username}")
@@ -57,14 +57,14 @@ async def read_work(username: str, db=Depends(get_connection)) -> Dict[str, Any]
     project_data = {}
     
     for log in work_logs:
-        print(log)
+
         issue_id = log["issue_id"]
-        duration = log["duration"]
+        duration = log.get("duration") if log.get("duration") else 0
         
         # Ensure issue_id is an integer
         issue_id = int(issue_id)
         issue = issue_collection.find_one({"id": issue_id})
-        print("------------",issue)
+  
         if issue is None:
             continue
         
@@ -245,5 +245,61 @@ async def get_user_activity_chart(db=Depends(get_connection), project_id: int = 
         assigned_issues = [assigned_data.get(label, 0) for label in labels]
         
         return {"labels": labels, "completed_issues": completed_issues, "assigned_issues": assigned_issues}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user_time_waste/{project_id}")
+async def get_user_activity_chart(db=Depends(get_connection), project_id: int = 0):
+    try:
+        user_collection = db["users"]
+        response = []
+        
+        all_users = user_collection.find({})
+        # Aggregation pipeline for completed issues
+        for user in all_users:
+            total_time_waste = 0
+            assign_issue_pipeline =[
+                        {'$match': {'username': user['username']}},
+                        {'$unwind': '$assign_issues'},
+                        {'$match': {'assign_issues.project_id': project_id}},
+                        {'$group': {'_id': '$username', 'assign_issues': {'$push': '$assign_issues'}}}
+                    ]
+            
+            # Aggregation pipeline for assigned issues
+            work_pipeline =[
+                {'$match': {'username': user['username']}},
+                {'$unwind': '$work'}, 
+                {'$match': {'work.project_id': project_id}},
+                {'$group': {'_id': '$username', 'assign_works': { '$push': '$work'}}}
+            ] 
+
+            assign_issue_list = list(user_collection.aggregate(assign_issue_pipeline))
+            work_list = list(user_collection.aggregate(work_pipeline))
+
+            if assign_issue_list == [] or work_pipeline == []:
+                
+                continue
+            
+            assign_issues = assign_issue_list[0]['assign_issues']
+            assign_works = work_list[0]['assign_works']
+
+            issue_index = 0
+            work_index = 0
+
+            while issue_index < len(assign_issues) and work_index < len(assign_works) :
+                if (assign_issues[issue_index]['issues_id'] == assign_works[work_index]['issue_id'] and assign_issues[issue_index]['start_time'] < assign_works[work_index]['start_time'] and (assign_issues[issue_index]['end_time'] == None or assign_issues[issue_index]['end_time'] > assign_works[work_index]['end_time'])):
+                    total_time_waste += (assign_works[work_index]['start_time'] - assign_issues[issue_index]['start_time'] ).total_seconds()
+                    issue_index += 1
+                work_index += 1
+
+            seconds = total_time_waste
+            hours = int(seconds // 3600)
+            minutes = int(((seconds % 3600) // 60))
+            seconds = int(seconds % 60)
+            format =  f"{hours}:{minutes}:{seconds}"
+            response.append({"name":user['username'], "time_waste":total_time_waste, "format":format})
+        return response
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

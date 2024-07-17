@@ -8,8 +8,8 @@ router = APIRouter()
 
 
 
-@router.post("/webhook")
-async def simple(request:Request, db = Depends(get_connection)):
+@router.post("/webhook", tags=["webhook"])
+async def webhook(request:Request, db = Depends(get_connection)):
     payload: Dict = await request.json()
     # Insert Logs in DB
     insert_logs(payload, db)

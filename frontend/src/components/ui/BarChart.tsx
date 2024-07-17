@@ -1,13 +1,12 @@
 "use client"
+import * as React from "react";
 
-import { TrendingUp } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
-
+import Notification from "../../Notification";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -17,25 +16,119 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-const chartData = [
-  { month: "January", desktop: 186 },
-  { month: "February", desktop: 305 },
-  { month: "March", desktop: 237 },
-  { month: "April", desktop: 73 },
-  { month: "May", desktop: 209 },
-  { month: "June", desktop: 214 },
-]
+// const barData = [{'name': 'vedanthakur0404005', 'time_waste': 11.42}, {'name': 'rahulpandey0404005', 'time_waste': 11.42}]
 
 const chartConfig = {
   desktop: {
     label: "Desktop",
     color: "hsl(var(--chart-1))",
+    format:"time_formats"
   },
 } as ChartConfig
 
+type BarData = {
+  name: string;
+  time_waste: string;
+  format: any
+};
+
+type Project = {
+  id: string;
+  name: string;
+};
+
 export function Barchart() {
+  const api = import.meta.env.VITE_API_URL;
+
+  const [barData, setBarData] = React.useState<BarData[]>([]);
+  const [projects, setProjects] = React.useState<Project[]>([]);
+
+
+  React.useEffect(() => {
+    const get_projects = async ()=>{
+    try {
+      const response = await fetch(api + "/projects");
+      const data = await response.json();
+      setProjects(data.data);
+    } catch (error) {
+      Notification({ message: "Problem fetching users", type: "error" });
+    }
+  }
+  get_projects()
+  }, []);
+
+
+  const fetchData = async (project_id: any) => {
+    
+    try {
+      // const project_id = 59516973
+      const response = await fetch(api + `/user_time_waste/${project_id}`);
+      const data = await response.json();
+
+
+      setBarData(data);
+    } catch (error) {
+      console.error("Problem fetching data", error);
+    }
+  }
+
+  const renderLabel = (props: any) => {
+  
+    const  seconds = props
+    var min = null
+    var hr = null
+    var sec = null
+
+    hr = Math.floor(seconds / 3600)
+    if (hr == 0){hr = '00'}
+
+    min = Math.floor(((seconds % 3600) / 60))
+    if (min == 0){min = '00'}
+
+    sec = Math.floor(seconds % 60)
+
+    
+
+    return `${hr}:${min}:${sec}`;
+};
+
+
+const renderLabel1 = (props: any) => {
+  
+  const  seconds = props
+  var min = null
+  var hr = null
+  var sec = null
+
+  hr = Math.floor(seconds / 3600)
+  if (hr == 0){hr = '00'}
+
+  min = Math.floor(((seconds % 3600) / 60))
+  if (min == 0){min = '00'}
+
+  sec = Math.floor(seconds % 60)
+
+  
+
+  return <p><li className="marker:text-green-600">Time {hr}:{min}:{sec}</li></p>;
+};
+ 
   return (
     <Card>
+      <select
+        defaultValue=""
+        onChange={(e) => fetchData(e.target.value)}
+        className="block py-2 px-4 rounded-md shadow-sm border-gray-300 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 w-48"
+      >
+        <option value="" disabled>
+          Choose user
+        </option>
+        {projects.map((project) => (
+          <option key={project.id} value={project.id} className="text-gray-900">
+            {project.name}
+          </option>
+        ))}
+      </select>
       <CardHeader>
         <CardTitle>Bar Chart - Label</CardTitle>
         <CardDescription>January - June 2024</CardDescription>
@@ -44,14 +137,14 @@ export function Barchart() {
         <ChartContainer config={chartConfig}>
           <BarChart
             accessibilityLayer
-            data={chartData}
+            data={barData}
             margin={{
               top: 20,
             }}
           >
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="name"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
@@ -60,26 +153,20 @@ export function Barchart() {
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
+              formatter={renderLabel1}
             />
-            <Bar dataKey="desktop" fill="var(--color-desktop)" radius={8}>
+            <Bar dataKey="time_waste" fill="var(--color-desktop)" radius={8}>
               <LabelList
                 position="top"
                 offset={12}
                 className="fill-foreground"
                 fontSize={12}
+                formatter={renderLabel}
               />
             </Bar>
           </BarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 font-medium leading-none">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="leading-none text-muted-foreground">
-          Showing total visitors for the last 6 months
-        </div>
-      </CardFooter>
     </Card>
   )
 }
