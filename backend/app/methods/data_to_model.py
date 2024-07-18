@@ -6,7 +6,6 @@ from app.utils.date_utils import convert_to_ISC
 labels_list = {'doing':0, 'testing':1, 'doc':2}
 def employee(payload, db):
     user = payload['user']
-    # If user is not present in DB insert him without 'work'
     
     employee = {'id':user['id']  , 'username':user['username'], 'name':user['name'], 'email':user['name'], 'avatar_url':user['avatar_url'], 'assign_issues':[]
             }

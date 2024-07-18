@@ -11,7 +11,6 @@ router = APIRouter()
 @router.get("/users")
 async def read_user(db=Depends(get_connection)):
     user_collection = db["users"]
-    # get distinct users and their name and username
     users = user_collection.find({}, {"name": 1, "username": 1, '_id':1})
     user_response = []
     
@@ -28,7 +27,6 @@ async def read_user(db=Depends(get_connection)):
 @router.get("/projects")
 async def read_user(db=Depends(get_connection)):
     user_collection = db["projects"]
-    # get distinct users and their name and username
     projects = user_collection.find({}, {"name": 1, "id":1, '_id':1})
     user_response = []
     
@@ -38,7 +36,6 @@ async def read_user(db=Depends(get_connection)):
             'name': project['name']
         })
 
-    print(user_response)
     return {"status": True, "data": user_response}
 
 @router.get("/work/{username}")
@@ -46,14 +43,12 @@ async def read_work(username: str, db=Depends(get_connection)) -> Dict[str, Any]
     user_collection = db["users"]
     issue_collection = db["issues"]
     project_collection = db["projects"]
-    # Retrieve user data
+    
     user = user_collection.find_one({"username": username})
     if not user:
         return {"error": "User not found"}
     
     work_logs = user.get("work", [])
-    # print(work_logs)
-    # Initialize data structures for aggregation
     project_data = {}
     
     for log in work_logs:
@@ -61,7 +56,6 @@ async def read_work(username: str, db=Depends(get_connection)) -> Dict[str, Any]
         issue_id = log["issue_id"]
         duration = log.get("duration") if log.get("duration") else 0
         
-        # Ensure issue_id is an integer
         issue_id = int(issue_id)
         issue = issue_collection.find_one({"id": issue_id})
   
@@ -71,7 +65,6 @@ async def read_work(username: str, db=Depends(get_connection)) -> Dict[str, Any]
         project_id = issue["project_id"]
         issue_title = issue["title"]
         
-        # Fetch the project name
         project = project_collection.find_one({"id": project_id})
         
         if project is None:
@@ -92,7 +85,6 @@ async def read_work(username: str, db=Depends(get_connection)) -> Dict[str, Any]
         project_data[project_name]["project_issues"][issue_title] += duration
         project_data[project_name]["time_spend_on_project"] += duration
     
-    # Format the response
     result = {
         "data": [
             {
@@ -116,7 +108,6 @@ async def read_work(username: str, db=Depends(get_connection)) -> Dict[str, Any]
 @router.get("/get-labels")
 async def get_labels(db=Depends(get_connection)):
     try:
-        # Retrieve all users
         user_collection = db["users"]
         users = user_collection.find()
         
@@ -137,7 +128,6 @@ async def get_labels(db=Depends(get_connection)):
 @router.get("/worktime/{label}", response_model=list)
 async def get_work_time(label: str, db=Depends(get_connection)):
     try:
-        # Retrieve all users
         user_collection = db["users"]
         users = user_collection.find()
         
@@ -157,7 +147,6 @@ async def get_work_time(label: str, db=Depends(get_connection)):
                 'total_duration': total_duration
             })
         
-        # Filter out users with no work time
         user_work_times = [uwt for uwt in user_work_times if uwt['total_duration'] > 0]
 
         for uwt in user_work_times:
@@ -189,7 +178,7 @@ async def get_donut_labels(db=Depends(get_connection)):
                 'count': res['count']
             })
 
-        # total count
+        
         total = sum([label['count'] for label in labels])
         for label in labels:
             label['percentage'] = round((label['count'] / total) * 100, 2)
@@ -206,7 +195,6 @@ async def get_user_activity_chart(db=Depends(get_connection), project_id: int = 
     try:
         user_collection = db["users"]
         
-        # Aggregation pipeline for completed issues
         completed_pipeline =[{"$unwind": "$work"},
             {"$match": {"work.end_time": {"$ne":None}}},
             {"$lookup": {
@@ -219,7 +207,6 @@ async def get_user_activity_chart(db=Depends(get_connection), project_id: int = 
             {"$group": {"_id": "$username", "completed_count": {"$sum": 1}}}
            ]
         
-        # Aggregation pipeline for assigned issues
         assigned_pipeline =[
             {"$unwind": "$assign_issues"},
             {"$lookup": {
@@ -256,7 +243,7 @@ async def get_user_activity_chart(db=Depends(get_connection), project_id: int = 
         response = []
         
         all_users = user_collection.find({})
-        # Aggregation pipeline for completed issues
+        
         for user in all_users:
             total_time_waste = 0
             assign_issue_pipeline =[
@@ -266,7 +253,7 @@ async def get_user_activity_chart(db=Depends(get_connection), project_id: int = 
                         {'$group': {'_id': '$username', 'assign_issues': {'$push': '$assign_issues'}}}
                     ]
             
-            # Aggregation pipeline for assigned issues
+            
             work_pipeline =[
                 {'$match': {'username': user['username']}},
                 {'$unwind': '$work'}, 

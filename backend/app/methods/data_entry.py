@@ -29,20 +29,16 @@ def update_work_of_user(curr_work_arr, username, db):
     
     filter = {'username': username}
     for curr_work in curr_work_arr:
-        # if we have start_time add into db
         if curr_work['start_time']:
             update = {"$push": {"work": curr_work}}
             user_collection.update_one(filter, update)
         else:
             works = user_collection.find_one(filter)
-            # if add label is not tracked then just ignore remove label
             if works is None or 'work' not in works:
-                print('Starting time not available')
                 return
             work_arr = works['work']
             for i in range(len(work_arr)-1, -1, -1):
                 work = work_arr[i]
-                # check for start_time and end_time to remove untracked label
                 if work['issue_id'] == curr_work['issue_id'] and work['label'] == curr_work['label'] and work['start_time'] and not work['end_time']:
                     work_arr[i]['end_time'] = curr_work['end_time']
                     work_arr[i]['duration'] = (curr_work['end_time'] -  work['start_time']).total_seconds()

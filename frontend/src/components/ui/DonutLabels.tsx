@@ -1,17 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { TrendingUp } from "lucide-react";
 import { Label, Pie, PieChart } from "recharts";
 import "./DonutLabels.css";
-
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import Notification from "@/Notification";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartConfig,
   ChartContainer,
@@ -43,7 +36,11 @@ const chartConfig = {
   },
 } as ChartConfig;
 
-export function DonutLabels(selected:boolean, project_id:str) {
+interface Props {
+  selectedProjectId: number;
+}
+
+const DonutLabels: React.FC<Props> = ({ selectedProjectId }) => {
   const [chartData, setChartData] = React.useState<CharData[]>([]);
   const api = import.meta.env.VITE_API_URL;
   const getColor = (data: CharData[]) => {
@@ -55,89 +52,87 @@ export function DonutLabels(selected:boolean, project_id:str) {
   };
 
   React.useEffect(() => {
+    if (selectedProjectId === 0) return;
     const fetchData = async () => {
       try {
-        const response = await fetch(api + "/donut_labels");
+        const response = await fetch(
+          api + `/donut_labels/${selectedProjectId}`
+        );
         const data = await response.json();
-        setChartData(getColor(data));
+        if (data.status == false) {
+          Notification({ message: data.message, type: "error" });
+          return;
+        }
+        setChartData(getColor(data.data));
       } catch (error) {
-        console.error("Problem fetching chart data", error);
+        Notification({ message: "Problem fetching users", type: "error" });
       }
     };
     fetchData();
-  }, []);
+  }, [selectedProjectId]);
 
   return (
-
-    <> 
-    {selected?<Card className="flex flex-col">
-      <CardHeader className="items-center pb-0">
-        <CardTitle>Pie Chart - Donut with Text</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
-        >
-          <PieChart>
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Pie
-              data={chartData}
-              dataKey="count"
-              nameKey="label"
-              innerRadius={60}
-              strokeWidth={5}
-            >
-              <Label
-                content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                    return (
-                      <text
-                        x={viewBox.cx}
-                        y={viewBox.cy}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        <tspan
+    <>
+      <Card className="flex flex-col">
+        <CardHeader className="items-center pb-0">
+          <CardTitle>Pie Chart - Donut with Text</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 pb-0">
+          <ChartContainer
+            config={chartConfig}
+            className="mx-auto aspect-square max-h-[250px]"
+          >
+            <PieChart>
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <Pie
+                data={chartData}
+                dataKey="count"
+                nameKey="label"
+                innerRadius={60}
+                strokeWidth={5}
+              >
+                <Label
+                  content={({ viewBox }) => {
+                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                      return (
+                        <text
                           x={viewBox.cx}
                           y={viewBox.cy}
-                          className="fill-foreground text-3xl font-bold"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
                         >
-                          {chartData.reduce(
-                            (acc: number, { count }: { count: number }) =>
-                              acc + count,
-                            0
-                          )}
-                        </tspan>
-                        <tspan
-                          x={viewBox.cx}
-                          y={(viewBox.cy || 0) + 24}
-                          className="fill-muted-foreground"
-                        >
-                          Total
-                        </tspan>
-                      </text>
-                    );
-                  }
-                }}
-              />
-            </Pie>
-          </PieChart>
-        </ChartContainer>
-      </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 font-medium leading-none">
-          <TrendingUp size={16} />
-          <span>Label Data</span>
-        </div>
-        <div className="leading-none text-muted-foreground">
-          Showing total label count
-        </div>
-      </CardFooter>
-    </Card>:<div></div>}
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            className="fill-foreground text-3xl font-bold"
+                          >
+                            {chartData.reduce(
+                              (acc: number, { count }: { count: number }) =>
+                                acc + count,
+                              0
+                            )}
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy || 0) + 24}
+                            className="fill-muted-foreground"
+                          >
+                            Total
+                          </tspan>
+                        </text>
+                      );
+                    }
+                  }}
+                />
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
     </>
   );
-}
+};
+export default DonutLabels;

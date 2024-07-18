@@ -11,9 +11,7 @@ router = APIRouter()
 @router.post("/webhook", tags=["webhook"])
 async def webhook(request:Request, db = Depends(get_connection)):
     payload: Dict = await request.json()
-    # Insert Logs in DB
     insert_logs(payload, db)
-    # print(payload)
     project_info = payload['project']
     project(project_info, db)
     employee(payload, db)

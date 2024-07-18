@@ -39,7 +39,6 @@ const UserProjectData = () => {
   };
 
   useEffect(() => {
-
     const fetchUsers = async () => {
       try {
         const response = await fetch(api + "/users");

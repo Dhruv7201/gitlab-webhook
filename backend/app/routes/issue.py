@@ -46,7 +46,40 @@ async def issue_lifetime(request: dict, conn = Depends(get_connection)):
         return {
             "status": True,
             "data": list(result),
-            "message": "Work fetched successfully",
+            "message": "Issues fetched successfully",
         }
     except Exception as e:
         return {"status": False, "data": list([]), "message": str(e)}
+
+
+@router.post("/issue_status", tags=["issue"])
+async def issue_status(request: dict, conn = Depends(get_connection)):
+    try:
+        project_id = request.get("project_id")
+        user_collection = conn["issues"]
+        aggregate = [
+            {
+                "$match": {
+                    "project_id": project_id
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$state",
+                    "count": {
+                        "$sum": 1
+                    }
+                }
+            }
+        ]
+        result = user_collection.aggregate(aggregate)
+        
+        return {
+            "status": True,
+            "data": list(result),
+            "message": "Issues fetched successfully",
+        }
+    except Exception as e:
+        return {"status": False, "data": list([]), "message": str(e)}
+
+
