@@ -1,15 +1,14 @@
-"use client";
 import * as React from "react";
-
+import api from "@/utils/api";
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts";
 import Notification from "../../Notification";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/chart";
+} from "@/components/_ui/chart";
 
 const chartConfig = {
   desktop: {
@@ -29,30 +28,26 @@ interface Props {
   selectedProjectId: number;
 }
 
-const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
-  const api = import.meta.env.VITE_API_URL;
-
+const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
   const [barData, setBarData] = React.useState<BarData[]>([]);
 
   React.useEffect(() => {
-    if (selectedProjectId === 0) return;
-    const fetchData = async (selectedProjectId: any) => {
-      try {
-        const response = await fetch(
-          api + `/user_time_waste/${selectedProjectId}`
-        );
-        const data = await response.json();
 
+    api
+      .post(`/work_duration_by_task`, {
+        project_id: selectedProjectId,
+      })
+      .then((response) => {
+        const data = response.data;
         if (data.status == false) {
           Notification({ message: data.message, type: "error" });
           return;
         }
         setBarData(data.data);
-      } catch (error) {
+      })
+      .catch((_error) => {
         Notification({ message: "Problem fetching users", type: "error" });
-      }
-    };
-    fetchData(selectedProjectId);
+      });
   }, [selectedProjectId]);
 
   const renderLabel = (props: any) => {
@@ -106,7 +101,7 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>User Idle Time</CardTitle>
+        <CardTitle>Task Duration</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
@@ -119,18 +114,22 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
           >
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="name"
+              dataKey="title"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
-              tickFormatter={(value) => value.slice(0, 3)}
+              tickFormatter={(value) => value}
             />
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
               formatter={renderLabel1}
             />
-            <Bar dataKey="time_waste" fill="var(--color-desktop)" radius={8}>
+            <Bar
+              dataKey="total_duration"
+              fill="var(--color-desktop)"
+              radius={8}
+            >
               <LabelList
                 position="top"
                 offset={12}
@@ -146,4 +145,4 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
   );
 };
 
-export default Barchart;
+export default WorkBarChart;

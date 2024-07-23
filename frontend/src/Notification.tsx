@@ -23,4 +23,6 @@ const Notification = ({ message, type }: NotificationProps) => {
     }
 }
 
+Notification({ message: 'This is an info message', type: 'info' });
+
 export default Notification;

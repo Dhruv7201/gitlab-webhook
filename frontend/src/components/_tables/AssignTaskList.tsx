@@ -1,48 +1,49 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Notification from "../../Notification";
+import api from "@/utils/api";
 
-type Project = {
-  data: Data[];
-};
-
-type Data = {
-  title: string;
+type Issue = {
   username: string;
+  title: string;
 };
+
+type AssigneeData = {
+  _id: number;
+  issues: Issue[];
+};
+
+type ApiResponse = {
+  status: boolean;
+  data: AssigneeData[];
+  message: string;
+};
+
 interface Props {
   selectedProjectId: number;
 }
+
 const AssignTaskList: React.FC<Props> = ({ selectedProjectId }) => {
-  const [workData, setWorkData] = useState<Project | null>(null);
-  const api = import.meta.env.VITE_API_URL;
+  const [workData, setWorkData] = useState<Issue[]>([]);
 
   useEffect(() => {
-    if (selectedProjectId === 0) return;
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch(api + "/assignee_task_list", {
-          method: "POST",
-          body: JSON.stringify({
-            project_id: selectedProjectId,
-          }),
-          headers: {
-            "Content-type": "application/json; charset=UTF-8",
-          },
-        });
-        const data = await response.json();
-        if (data.status == false) {
+    api.post("/assignee_task_list", { project_id: selectedProjectId })
+      .then((response) => {
+        const data: ApiResponse = response.data;
+        if (data.status === false) {
           Notification({ message: data.message, type: "error" });
           return;
         }
-
-        setWorkData(data);
-      } catch (error) {
+        
+        // Flatten the data
+        const flattenedData: Issue[] = data.data.flatMap(assignee => assignee.issues);
+        setWorkData(flattenedData);
+      })
+      .catch((error) => {
         Notification({ message: "Problem fetching users", type: "error" });
-      }
-    };
-    fetchUsers();
+      });
   }, [selectedProjectId]);
+
   return (
     <div className="container mx-auto p-4">
       <div style={{ height: 50 }}>
@@ -63,15 +64,12 @@ const AssignTaskList: React.FC<Props> = ({ selectedProjectId }) => {
           </tr>
         </thead>
         <tbody>
-          {workData &&
-            workData.data.map((project) => (
-              <React.Fragment key={project.username}>
-                <tr>
-                  <td className="py-2 px-4">{project.username}</td>
-                  <td className="py-2 px-4">{project.title}</td>
-                </tr>
-              </React.Fragment>
-            ))}
+          {workData.map((issue, index) => (
+            <tr key={index}>
+              <td className="py-2 px-4">{issue.username}</td>
+              <td className="py-2 px-4">{issue.title}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

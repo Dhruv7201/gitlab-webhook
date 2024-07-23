@@ -12,6 +12,9 @@ axios.interceptors.request.use((config) => {
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL as string,
+  headers: {
+    'Content-Type': 'application/json; charset=UTF-8',
+}
 });
 
 export default api;

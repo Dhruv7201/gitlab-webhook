@@ -1,4 +1,5 @@
 import React from "react";
+import api from "@/utils/api";
 import { useState, useEffect } from "react";
 import Notification from "../Notification";
 
@@ -26,29 +27,39 @@ type Data = {
 const UserProjectData = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [workData, setWorkData] = useState<Project | null>(null);
-  const api = import.meta.env.VITE_API_URL;
 
   const handleFetchWork = async (name: string) => {
-    try {
-      const response = await fetch(api + `/work/${name}`);
-      const data = await response.json();
-      setWorkData(data);
-    } catch (error) {
-      Notification({ message: "Problem fetching work", type: "error" });
-    }
+    api
+      .post(`/work`, {
+        username: name,
+      })
+      .then((response) => {
+        const data = response.data;
+        if (data.status == false) {
+          Notification({ message: data.message, type: "error" });
+          return;
+        }
+        setWorkData(data.data);
+      })
+      .catch((_error) => {
+        Notification({ message: "Problem fetching work", type: "error" });
+      });
   };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch(api + "/users");
-        const data = await response.json();
+    api
+      .post("/users")
+      .then((response) => {
+        const data = response.data;
+        if (data.status == false) {
+          Notification({ message: data.message, type: "error" });
+          return;
+        }
         setUsers(data.data);
-      } catch (error) {
+      })
+      .catch((_error) => {
         Notification({ message: "Problem fetching users", type: "error" });
-      }
-    };
-    fetchUsers();
+      });
   }, []);
   return (
     <div className="container mx-auto p-4">
@@ -60,8 +71,8 @@ const UserProjectData = () => {
         <option value="" disabled>
           Choose user
         </option>
-        {users.map((user) => (
-          <option key={user.id} value={user.username} className="text-gray-900">
+        {users.map((user, index) => (
+          <option key={index} value={user.username} className="text-gray-900">
             {user.name}
           </option>
         ))}
@@ -82,8 +93,8 @@ const UserProjectData = () => {
         </thead>
         <tbody>
           {workData &&
-            workData.data.map((project) => (
-              <React.Fragment key={project.project_name}>
+            workData.data.map((project, index) => (
+              <React.Fragment key={index}>
                 {project.project_issues.map((issue: Issue, index: number) => (
                   <tr
                     key={index}

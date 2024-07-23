@@ -1,12 +1,13 @@
 import { LabelList, RadialBar, RadialBarChart } from "recharts";
+import api from "@/utils/api";
 import Notification from "@/Notification";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/chart";
+} from "@/components/_ui/chart";
 import React from "react";
 
 const chartConfig = {
@@ -25,7 +26,6 @@ interface Props {
 }
 
 const RadialChart: React.FC<Props> = ({ selectedProjectId }) => {
-  const api = import.meta.env.VITE_API_URL;
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
 
   function getColor(data: ChartData[]) {
@@ -39,32 +39,26 @@ const RadialChart: React.FC<Props> = ({ selectedProjectId }) => {
   }
 
   React.useEffect(() => {
-    if (selectedProjectId === 0) return;
-    const fetchData = async () => {
-      try {
-        const response = await fetch(api + "/work_done", {
-          method: "POST",
-          body: JSON.stringify({
-            project_id: selectedProjectId,
-          }),
-          headers: {
-            "Content-type": "application/json; charset=UTF-8",
-          },
-        });
-        const data = await response.json();
+
+
+    api
+      .post("/work_done", {
+        project_id: selectedProjectId,
+      })
+      .then((response) => {
+        const data = response.data;
         if (data.status == false) {
           Notification({ message: data.message, type: "error" });
           return;
         }
         setChartData(getColor(data.data));
-      } catch (error) {
+      })
+      .catch((_error) => {
         Notification({ message: "Problem fetching users", type: "error" });
-      }
-    };
-    fetchData();
+      });
   }, [selectedProjectId]);
   return (
-    <Card className="flex flex-col">
+    <Card>
       <CardHeader className="items-center pb-0">
         <CardTitle>Total task Completed</CardTitle>
       </CardHeader>

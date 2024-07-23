@@ -50,3 +50,4 @@ class project_model(BaseModel):
 class demo(BaseModel):
     id:int
     title:str|None = None
+

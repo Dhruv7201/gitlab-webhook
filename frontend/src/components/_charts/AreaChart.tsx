@@ -1,18 +1,20 @@
 import * as React from "react";
+import api from "@/utils/api";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import Notification from "../../Notification";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/chart";
+  ChartLegend,
+} from "@/components/_ui/chart";
 
 type ChartData = {
-  user: string;
-  completed_issues: number;
-  assigned_issues: number;
+  labels: string[];
+  completed_issues: number[];
+  assigned_issues: number[];
 };
 
 const chartConfig = {
@@ -32,37 +34,31 @@ interface Props {
 
 const AreaChartCom: React.FC<Props> = ({ selectedProjectId }) => {
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
-  const api = import.meta.env.VITE_API_URL;
 
   React.useEffect(() => {
-    const fetchData = async () => {
-      if (selectedProjectId === 0) return;
-      try {
-        const response = await fetch(
-          api + `/user_activity_chart/${selectedProjectId}`
-        );
-        const data = await response.json();
+
+    api
+      .post(`/user_activity_chart`, {
+        project_id: selectedProjectId,
+      })
+      .then((response) => {
+        const data = response.data;
         if (data.status == false) {
           Notification({ message: data.message, type: "error" });
           return;
         }
-
-        const actual_data = data.data;
-        const transformedData = actual_data.labels.map(
+        const transformedData = data.data.labels.map(
           (label: string, index: number) => ({
             user: label,
-            completed_issues: actual_data.completed_issues[index],
-            assigned_issues: actual_data.assigned_issues[index],
+            completed_issues: data.data.completed_issues[index],
+            assigned_issues: data.data.assigned_issues[index],
           })
         );
-
         setChartData(transformedData);
-      } catch (error) {
+      })
+      .catch((_error: any) => {
         Notification({ message: "Problem fetching users", type: "error" });
-      }
-    };
-
-    fetchData();
+      });
   }, [selectedProjectId]);
 
   return (
@@ -109,6 +105,10 @@ const AreaChartCom: React.FC<Props> = ({ selectedProjectId }) => {
               stroke="var(--color-mobile)"
               stackId="a"
             />
+
+            {chartData.map((_entry, index) => (
+              <ChartLegend key={index} color="var(--color-desktop)" />
+            ))}
           </AreaChart>
         </ChartContainer>
       </CardContent>

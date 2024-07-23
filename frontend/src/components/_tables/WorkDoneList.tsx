@@ -1,4 +1,5 @@
 import React from "react";
+import api from "@/utils/api";
 import { useState, useEffect } from "react";
 import Notification from "../../Notification";
 
@@ -21,7 +22,6 @@ interface Props {
 }
 const UserProjectData: React.FC<Props> = ({ selectedProjectId }) => {
   const [workData, setWorkData] = useState<Project | null>(null);
-  const api = import.meta.env.VITE_API_URL;
 
   const renderLabel = (props: any) => {
     const seconds = props;
@@ -60,36 +60,29 @@ const UserProjectData: React.FC<Props> = ({ selectedProjectId }) => {
     };
   }
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (selectedProjectId === 0) return;
-      try {
-        const response = await fetch(api + "/user_work_done_list", {
-          method: "POST",
-          body: JSON.stringify({
-            project_id: selectedProjectId,
-          }),
-          headers: {
-            "Content-type": "application/json; charset=UTF-8",
-          },
-        });
-        const data = await response.json();
+
+    api
+      .post("/user_work_done_list", {
+        project_id: selectedProjectId,
+      })
+      .then((response) => {
+        const data = response.data;
         if (data.status == false) {
           Notification({ message: data.message, type: "error" });
           return;
         }
         const format_data = formatData(data);
         setWorkData(format_data);
-      } catch (error) {
+      })
+      .catch((_error) => {
         Notification({ message: "Problem fetching users", type: "error" });
-      }
-    };
-    fetchUsers();
+      });
   }, [selectedProjectId]);
   return (
     <div className="container mx-auto p-4">
       <div style={{ height: 50 }}>
         <h1 className="text-2xl font-semibold leading-none tracking-tight">
-          Work Done By users
+          Work Done By users Table
         </h1>
       </div>
       <table className="w-full mt-4 bg-white shadow-md rounded-md overflow-hidden">
@@ -108,8 +101,8 @@ const UserProjectData: React.FC<Props> = ({ selectedProjectId }) => {
         </thead>
         <tbody>
           {workData &&
-            workData.data.map((project) => (
-              <React.Fragment key={project.username}>
+            workData.data.map((project, index) => (
+              <React.Fragment key={index}>
                 {project.issues.map((issue: Issue, index: number) => (
                   <tr
                     key={index}

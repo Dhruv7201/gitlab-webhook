@@ -1,0 +1,47 @@
+image: docker:20.10.16
+variables:
+  GIT_DEPTH: '0' 
+
+stages:
+  - build
+  - test
+  - release
+  - deploy
+
+workflow:
+    rules:
+      - if: $CI_COMMIT_BRANCH == "main"
+        variables:
+          DOCKER_TLS_CERTDIR: ""
+          # SERVER_IP: 203.109.103.26
+          # SERVER_USER: administrator
+          DEPLOY_USER: epiu
+          DEPLOY_PASSWORD: "Ethics@2023"
+          CONTAINER_REGISTRY: https://index.docker.io/v1/
+          CONTAINER_IMAGE: epiu/gitlab-report-bk
+          CONTAINER_TEST_IMAGE: $CONTAINER_IMAGE:$CI_COMMIT_REF_SLUG
+          CONTAINER_RELEASE_IMAGE: $CONTAINER_IMAGE:prod
+          CONTAINER_NAME: gitlab-report-bk
+          CD_URL: http://portainer.ethicsinfotech.in:9443/api/stacks/webhooks/911adda5-3ce6-41fe-b4f0-313307ddcd55
+build:
+  stage: build
+  before_script:
+    - docker login -u $DEPLOY_USER -p $DEPLOY_PASSWORD $CONTAINER_REGISTRY
+  script:
+    - env
+    - cd backend
+    - docker build --pull -t $CONTAINER_TEST_IMAGE -f Dockerfile .
+
+release:
+  stage: release
+  before_script:
+    - docker login -u $DEPLOY_USER -p $DEPLOY_PASSWORD $CONTAINER_REGISTRY 
+  script:
+    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
+    - docker push $CONTAINER_RELEASE_IMAGE
+
+deploy:
+  stage: deploy
+  script:
+    - apk add --update curl
+    - curl -XPOST $CD_URL

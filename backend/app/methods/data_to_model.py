@@ -3,7 +3,7 @@ from app.methods.data_entry import  update_work_of_user, insert_user, insert_pro
 from app.utils.date_utils import convert_to_ISC
 
 
-labels_list = {'doing':0, 'testing':1, 'doc':2}
+labels_list = {'Doing':0, 'Testing':1, 'Documentation':2}
 def employee(payload, db):
     user = payload['user']
     

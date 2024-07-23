@@ -1,13 +1,14 @@
 import * as React from "react";
+import api from "@/utils/api";
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts";
 import Notification from "../../Notification";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/chart";
+} from "@/components/_ui/chart";
 
 const chartConfig = {
   desktop: {
@@ -27,37 +28,39 @@ interface Props {
   selectedProjectId: number;
 }
 
-const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
-  const api = import.meta.env.VITE_API_URL;
-
+const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
   const [barData, setBarData] = React.useState<BarData[]>([]);
 
+  const project_id = localStorage.getItem("selectedProjectId");
+
   React.useEffect(() => {
-    if (selectedProjectId === 0) return;
-    const fetchData = async () => {
-      try {
-        const response = await fetch(api + `/work_duration_by_task`, {
-          method: "POST",
-          body: JSON.stringify({
-            project_id: selectedProjectId,
-          }),
-          headers: {
-            "Content-type": "application/json; charset=UTF-8",
-          },
-        });
-        const data = await response.json();
-        if (data.status == false) {
+
+  
+    api
+      .post(`/user_time_waste`, {
+        project_id: selectedProjectId,
+      })
+      .then((response) => {
+        const data = response.data;
+        if (data.status === false) {
           Notification({ message: data.message, type: "error" });
           return;
         }
-
         setBarData(data.data);
-      } catch (error) {
-        Notification({ message: "Problem fetching users", type: "error" });
-      }
-    };
-    fetchData();
+      })
+      .catch((error) => {
+        console.error(error);
+  
+        // Check if the error response has a detail field
+        if (error.response && error.response.data && error.response.data.detail) {
+          const detail = error.response.data.detail;
+          Notification({ message: detail.message, type: "error" });
+        } else {
+          Notification({ message: error.message, type: "error" });
+        }
+      });
   }, [selectedProjectId]);
+  
 
   const renderLabel = (props: any) => {
     const seconds = props;
@@ -110,7 +113,11 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Task Duration</CardTitle>
+        {project_id ? (
+          <CardTitle>User Idle Time</CardTitle>
+        ) : (
+          <CardTitle>Select Project</CardTitle>
+        )}
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
@@ -123,22 +130,18 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
           >
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="title"
+              dataKey="name"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
-              tickFormatter={(value) => value}
+              tickFormatter={(value) => value.slice(0, 3)}
             />
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
               formatter={renderLabel1}
             />
-            <Bar
-              dataKey="total_duration"
-              fill="var(--color-desktop)"
-              radius={8}
-            >
+            <Bar dataKey="time_waste" fill="var(--color-desktop)" radius={8}>
               <LabelList
                 position="top"
                 offset={12}
@@ -154,4 +157,4 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
   );
 };
 
-export default WorkBarChart;
+export default Barchart;

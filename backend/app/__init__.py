@@ -13,6 +13,7 @@ app.add_middleware(
 )
 
 
+
 from app.routes import register_routers
 
 register_routers(app)
