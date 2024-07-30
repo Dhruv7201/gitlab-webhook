@@ -76,7 +76,7 @@ const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
                 setValue(e.target.value);
               }}
               value={value}
-              className="w-full p-2 border border-gray-300 rounded mb-4"
+              className="w-full p-2 border border-gray-300 mb-4"
               placeholder="Search Projects..."
             />
             <div>

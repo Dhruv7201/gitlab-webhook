@@ -1,8 +1,20 @@
 import * as React from "react";
 import api from "@/utils/api";
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
+  XAxis,
+  Tooltip,
+} from "recharts";
 import Notification from "../../Notification";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/_ui/card";
 import {
   ChartConfig,
   ChartContainer,
@@ -20,8 +32,7 @@ const chartConfig = {
 
 type BarData = {
   name: string;
-  time_waste: string;
-  format: any;
+  time_waste: number; // Assuming this is in seconds
 };
 
 interface Props {
@@ -31,11 +42,7 @@ interface Props {
 const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
   const [barData, setBarData] = React.useState<BarData[]>([]);
 
-  const project_id = localStorage.getItem("selectedProjectId");
-
   React.useEffect(() => {
-
-  
     api
       .post(`/user_time_waste`, {
         project_id: selectedProjectId,
@@ -50,9 +57,12 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
       })
       .catch((error) => {
         console.error(error);
-  
-        // Check if the error response has a detail field
-        if (error.response && error.response.data && error.response.data.detail) {
+
+        if (
+          error.response &&
+          error.response.data &&
+          error.response.data.detail
+        ) {
           const detail = error.response.data.detail;
           Notification({ message: detail.message, type: "error" });
         } else {
@@ -60,69 +70,50 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
         }
       });
   }, [selectedProjectId]);
-  
 
-  const renderLabel = (props: any) => {
-    const seconds = props;
-    var min = null;
-    var hr = null;
-    var sec = null;
-
-    hr = Math.floor(seconds / 3600);
-    if (hr == 0) {
-      hr = "00";
-    }
-
-    min = Math.floor((seconds % 3600) / 60);
-    if (min == 0) {
-      min = "00";
-    }
-
-    sec = Math.floor(seconds % 60);
+  const renderLabel = (value: number) => {
+    const seconds = value;
+    const hr = Math.floor(seconds / 3600)
+      .toString()
+      .padStart(2, "0");
+    const min = Math.floor((seconds % 3600) / 60)
+      .toString()
+      .padStart(2, "0");
+    const sec = Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, "0");
 
     return `${hr}:${min}:${sec}`;
   };
 
-  const renderLabel1 = (props: any) => {
-    const seconds = props;
-    var min = null;
-    var hr = null;
-    var sec = null;
+  const renderTooltipContent = (props: any) => {
+    if (!props.active || !props.payload || props.payload.length === 0)
+      return null;
 
-    hr = Math.floor(seconds / 3600);
-    if (hr == 0) {
-      hr = "00";
-    }
-
-    min = Math.floor((seconds % 3600) / 60);
-    if (min == 0) {
-      min = "00";
-    }
-
-    sec = Math.floor(seconds % 60);
+    const { payload } = props;
+    const { name, time_waste } = payload[0].payload;
 
     return (
-      <p>
-        <li className="marker:text-green-600">
-          Time {hr}:{min}:{sec}
-        </li>
-      </p>
+      <div className="bg-white border border-gray-300 p-2 rounded">
+        <p>
+          <strong>Time:</strong> {renderLabel(time_waste)}
+        </p>
+        <p>
+          <strong>Name:</strong> {name || "No Name"}
+        </p>{" "}
+        {/* Fallback for missing name */}
+      </div>
     );
   };
 
   return (
     <Card>
       <CardHeader>
-        {project_id ? (
-          <CardTitle>User Idle Time</CardTitle>
-        ) : (
-          <CardTitle>Select Project</CardTitle>
-        )}
+        <CardTitle>User Idle Time</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
           <BarChart
-            accessibilityLayer
             data={barData}
             margin={{
               top: 20,
@@ -136,11 +127,7 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
               axisLine={false}
               tickFormatter={(value) => value.slice(0, 3)}
             />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-              formatter={renderLabel1}
-            />
+            <Tooltip content={renderTooltipContent} />
             <Bar dataKey="time_waste" fill="var(--color-desktop)" radius={8}>
               <LabelList
                 position="top"

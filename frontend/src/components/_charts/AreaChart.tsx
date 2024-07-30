@@ -1,6 +1,6 @@
 import * as React from "react";
 import api from "@/utils/api";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import Notification from "../../Notification";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
 import {
@@ -32,11 +32,10 @@ interface Props {
   selectedProjectId: number;
 }
 
-const AreaChartCom: React.FC<Props> = ({ selectedProjectId }) => {
+const BarChartCom: React.FC<Props> = ({ selectedProjectId }) => {
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
 
   React.useEffect(() => {
-
     api
       .post(`/user_activity_chart`, {
         project_id: selectedProjectId,
@@ -68,7 +67,7 @@ const AreaChartCom: React.FC<Props> = ({ selectedProjectId }) => {
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
-          <AreaChart
+          <BarChart
             accessibilityLayer
             data={chartData}
             margin={{
@@ -86,33 +85,25 @@ const AreaChartCom: React.FC<Props> = ({ selectedProjectId }) => {
             />
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
+              content={<ChartTooltipContent indicator="dashed" />}
             />
-            <Area
+            <Bar
               dataKey="completed_issues"
-              type="natural"
               fill="var(--color-desktop)"
-              fillOpacity={0.4}
-              stroke="var(--color-desktop)"
-              stackId="a"
+              radius={4}
             />
-
-            <Area
+            <Bar
               dataKey="assigned_issues"
-              type="natural"
               fill="var(--color-mobile)"
-              fillOpacity={0.4}
-              stroke="var(--color-mobile)"
-              stackId="a"
+              radius={4}
             />
-
             {chartData.map((_entry, index) => (
               <ChartLegend key={index} color="var(--color-desktop)" />
             ))}
-          </AreaChart>
+          </BarChart>
         </ChartContainer>
       </CardContent>
     </Card>
   );
 };
-export default AreaChartCom;
+export default BarChartCom;

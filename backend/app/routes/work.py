@@ -278,19 +278,33 @@ async def get_assignee_task_list(request: dict, conn=Depends(get_connection)):
     try:
         project_id = request.get("project_id")
         issues_collection = conn["issues"]
-        
+
         aggregate = []
-        
+
         if project_id != 0:
             aggregate.append({
                 "$match": {
                     "project_id": project_id
                 }
             })
-        
+
         aggregate += [
             {
                 "$unwind": "$assign"
+            },
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "assign.user_id",
+                    "foreignField": "id",
+                    "as": "assignee_info"
+                }
+            },
+            {
+                "$unwind": {
+                    "path": "$assignee_info",
+                    "preserveNullAndEmptyArrays": True
+                }
             },
             {
                 "$match": {
@@ -298,23 +312,18 @@ async def get_assignee_task_list(request: dict, conn=Depends(get_connection)):
                 }
             },
             {
-                "$lookup": {
-                    "from": "users",
-                    "localField": "assign.id",
-                    "foreignField": "id",
-                    "as": "assignee_info"
-                }
-            },
-            {
-                "$unwind": "$assignee_info"
-            },
-            {
                 "$group": {
-                    "_id": "$assign.id",
-                    "issues": {
-                        "$push": {
-                            "username": "$assignee_info.username",
-                            "title": "$title"
+                    "_id": "$title",
+                    "issue_url": {
+                        "$first": "$url"
+                    },
+                    "assigned": {
+                        "$first": {
+                            "$cond": {
+                                "if": {"$ne": ["$assignee_info", None]},
+                                "then": "$assignee_info.name",
+                                "else": "not assigned"
+                            }
                         }
                     }
                 }
@@ -323,10 +332,11 @@ async def get_assignee_task_list(request: dict, conn=Depends(get_connection)):
 
         result = list(issues_collection.aggregate(aggregate))
 
+        response_data = [{"task": doc["_id"], "assigned": doc["assigned"], "issue_url": doc["issue_url"]} for doc in result]
 
         return {
             "status": True,
-            "data": result,
+            "data": response_data,
             "message": "Work fetched successfully"
         }
     except Exception as e:

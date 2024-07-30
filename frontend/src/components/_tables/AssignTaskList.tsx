@@ -1,21 +1,15 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Notification from "../../Notification";
 import api from "@/utils/api";
 
-type Issue = {
-  username: string;
-  title: string;
-};
-
-type AssigneeData = {
-  _id: number;
-  issues: Issue[];
+type TaskData = {
+  task: string;
+  assigned: string;
 };
 
 type ApiResponse = {
   status: boolean;
-  data: AssigneeData[];
+  data: TaskData[];
   message: string;
 };
 
@@ -24,20 +18,19 @@ interface Props {
 }
 
 const AssignTaskList: React.FC<Props> = ({ selectedProjectId }) => {
-  const [workData, setWorkData] = useState<Issue[]>([]);
+  const [workData, setWorkData] = useState<TaskData[]>([]);
 
   useEffect(() => {
-    api.post("/assignee_task_list", { project_id: selectedProjectId })
+    api
+      .post("/assignee_task_list", { project_id: selectedProjectId })
       .then((response) => {
         const data: ApiResponse = response.data;
         if (data.status === false) {
           Notification({ message: data.message, type: "error" });
           return;
         }
-        
-        // Flatten the data
-        const flattenedData: Issue[] = data.data.flatMap(assignee => assignee.issues);
-        setWorkData(flattenedData);
+
+        setWorkData(data.data);
       })
       .catch((error) => {
         Notification({ message: "Problem fetching users", type: "error" });
@@ -52,22 +45,27 @@ const AssignTaskList: React.FC<Props> = ({ selectedProjectId }) => {
         </h1>
       </div>
 
-      <table className="w-full mt-4 bg-white shadow-md rounded-md overflow-hidden">
+      <table className="w-full mt-4 bg-white shadow-md rounded-md overflow-hidden border border-gray-200">
         <thead className="bg-gray-100">
           <tr>
             <th className="py-2 px-4 font-medium text-sm text-gray-700">
-              Username
+              Task
             </th>
             <th className="py-2 px-4 font-medium text-sm text-gray-700">
-              Title
+              Assigned
             </th>
           </tr>
         </thead>
         <tbody>
-          {workData.map((issue, index) => (
-            <tr key={index}>
-              <td className="py-2 px-4">{issue.username}</td>
-              <td className="py-2 px-4">{issue.title}</td>
+          {workData.map((task, index) => (
+            <tr
+              key={index}
+              className="border-b border-gray-200 hover:bg-gray-100 cursor-pointer"
+            >
+              <td className="py-2 px-4" onClick={() => console.log(task)}>
+                {task.task}
+              </td>
+              <td className="py-2 px-4">{task.assigned}</td>
             </tr>
           ))}
         </tbody>

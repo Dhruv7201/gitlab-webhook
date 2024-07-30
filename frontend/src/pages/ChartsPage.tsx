@@ -10,7 +10,8 @@ import WorkDoneList from "@/components/_tables/WorkDoneList";
 import AssignTaskList from "@/components/_tables/AssignTaskList";
 import { DatePickerWithRange } from "@/utils/DateRange";
 import { DateRange } from "react-day-picker";
-import MultiCharts  from "@/components/_charts/MultiCharts";
+import { MultiBarChart } from "@/components/_charts/MultiBarchart";
+import IssuesLifeTime from "@/components/_charts/IssuesLifeTime";
 
 const sevenDaysAgo = () => {
   const date = new Date();
@@ -27,46 +28,38 @@ const ChartsPage = () => {
 
   return (
     <>
-      <div className="container mx-auto p-4 flex flex-row gap-4 h-full w-full">
+      <div className="flex justify-start gap-4 p-4">
         <EditableDropdown setSelectedProjectId={setSelectedProjectId} />
-        <DatePickerWithRange date={date} setDate={setDate} />
+        {/* <DatePickerWithRange date={date} setDate={setDate} /> */}
       </div>
-      <div className="container mx-auto p-4 flex flex-row gap-4 h-full w-full">
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <DonutLabels selectedProjectId={selectedProjectId} dateRange={date} />
-        </div>
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <AreaChartCom selectedProjectId={selectedProjectId} />
-        </div>
+
+      <div className="flex flex-col gap-4 h-full">
+        <IssuesLifeTime selectedProjectId={selectedProjectId} />
       </div>
-      <div className="container mx-auto p-4 flex flex-row gap-4 h-full w-full">
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <Barchart selectedProjectId={selectedProjectId} />
-        </div>
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <CustomChart selectedProjectId={selectedProjectId} />
-        </div>
+      <div className="flex flex-col gap-4 h-full">
+        <AreaChartCom selectedProjectId={selectedProjectId} />
       </div>
-      <div className="container mx-auto p-4 flex flex-row gap-4 h-full w-full">
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <RadialChart selectedProjectId={selectedProjectId} />
-        </div>
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <WorkBarChart selectedProjectId={selectedProjectId} />
-        </div>
+
+      <div className="flex flex-col gap-4 h-full">
+        <Barchart selectedProjectId={selectedProjectId} />
       </div>
-      <div className="container mx-auto p-4 flex flex-row gap-4 h-full w-full">
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <WorkDoneList selectedProjectId={selectedProjectId} />
-        </div>
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <AssignTaskList selectedProjectId={selectedProjectId} />
-        </div>
+      <div className="flex flex-col gap-4 h-full">
+        <CustomChart selectedProjectId={selectedProjectId} />
       </div>
-      <div className="container mx-auto p-4 flex flex-row gap-4 h-full w-full">
-        <div className="flex flex-col gap-4 w-1/2 h-full">
-          <MultiCharts selectedProjectId={selectedProjectId} />
-        </div>
+      <div className="flex flex-col gap-4 h-full">
+        <MultiBarChart />
+      </div>
+      <div className="flex flex-col gap-4 h-full">
+        <WorkBarChart selectedProjectId={selectedProjectId} />
+      </div>
+      <div className="flex flex-col gap-4  h-full">
+        <WorkDoneList selectedProjectId={selectedProjectId} />
+      </div>
+      <div className="flex flex-col gap-4  h-full">
+        <AssignTaskList selectedProjectId={selectedProjectId} />
+      </div>
+      <div className="flex flex-col gap-4 h-full">
+        <DonutLabels selectedProjectId={selectedProjectId} dateRange={date} />
       </div>
     </>
   );
