@@ -21,6 +21,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/_ui/chart";
+import { secondsToHMSorDays } from "@/utils/timeFormate";
 
 const chartConfig = {
   desktop: {
@@ -63,21 +64,6 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
       });
   }, [selectedProjectId]);
 
-  const renderLabel = (value: number) => {
-    const seconds = value;
-    const hr = Math.floor(seconds / 3600)
-      .toString()
-      .padStart(2, "0");
-    const min = Math.floor((seconds % 3600) / 60)
-      .toString()
-      .padStart(2, "0");
-    const sec = Math.floor(seconds % 60)
-      .toString()
-      .padStart(2, "0");
-
-    return `${hr}:${min}:${sec}`;
-  };
-
   const renderTooltipContent = (props: any) => {
     if (!props.active || !props.payload || props.payload.length === 0)
       return null;
@@ -88,12 +74,11 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
     return (
       <div className="bg-white border border-gray-300 p-2 rounded">
         <p>
-          <strong>Time:</strong> {renderLabel(total_duration)}
+          <strong>Time:</strong> {secondsToHMSorDays(total_duration)}
         </p>
         <p>
           <strong>Name:</strong> {title || "No Name"}
-        </p>{" "}
-        {/* Fallback for missing name */}
+        </p>
       </div>
     );
   };
@@ -132,7 +117,7 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
                 offset={12}
                 className="fill-foreground"
                 fontSize={12}
-                formatter={renderLabel}
+                formatter={secondsToHMSorDays}
               />
             </Bar>
           </BarChart>

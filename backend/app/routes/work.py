@@ -113,7 +113,6 @@ async def get_work_duration_by_task(request:dict, conn = Depends(get_connection)
             aggregate.append(
                 {
                     "$match": {
-                        "work.end_time": { "$ne": None },
                         "work.project_id": project_id
                     }
                 }

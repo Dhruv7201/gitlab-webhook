@@ -191,6 +191,11 @@ async def get_donut_labels(request:dict, conn = Depends(get_connection)):
             )
         pipeline.extend([
             {
+                "$match": {
+                    "work.end_time": {"$ne": None}
+                }
+            },
+            {
                 "$group": {
                     "_id": "$work.label", "count": {
                         "$sum": 1
@@ -250,7 +255,7 @@ async def get_user_activity_chart(request:dict, conn = Depends(get_connection)):
             {"$unwind": "$assign_issues"},
             {"$lookup": {
                 "from": "projects",
-                "localField": "assign_issues.issues_id",
+                "localField": "assign_issues.issue_id",
                 "foreignField": "id",
                 "as": "project_info"
             }}]
@@ -287,59 +292,70 @@ async def get_user_activity_chart(request: dict, conn = Depends(get_connection))
         project_id = request.get("project_id")
         user_collection = conn["users"]
 
-        pipeline = []
-        if project_id != 0:
-            pipeline.append({
-                '$match': {
-                    'assign_issues.project_id': project_id,
-                    'work.project_id': project_id,
-                    'assign_issues.issues_id': '$work.issue_id'
+        # Define the pipeline
+        pipeline = [
+            {
+                '$unwind': '$assign_issues'
+            },
+            {
+                '$unwind': '$work'
+            },
+            {
+                '$addFields': {
+                    'areFieldsEqual': { '$eq': ['$assign_issues.issues_id', '$work.issue_id'] }
                 }
-            })
-        pipeline += [
-        {
-            '$unwind': '$assign_issues'
-        },
-        {
-            '$unwind': '$work'
-        },
-        {
-            '$match': {
-                '$expr': {
-                    '$and': [
-                        { '$eq': ['$assign_issues.issues_id', '$work.issue_id'] },
-                        { '$lt': ['$assign_issues.start_time', '$work.start_time'] },
-                        { '$or': [
-                            { '$eq': ['$assign_issues.end_time', None] },
-                            { '$gt': ['$assign_issues.end_time', '$work.end_time'] }
-                        ] }
+            },
+            {
+                '$match': {
+                    'areFieldsEqual': True
+                }
+            },
+            {
+                '$match': {
+                    '$expr': {
+                        '$and': [
+                            { '$lt': ['$assign_issues.start_time', '$work.start_time'] },
+                            { '$or': [
+                                { '$eq': ['$assign_issues.end_time', None] },
+                                { '$gt': ['$assign_issues.end_time', '$work.end_time'] }
+                            ]}
+                        ]
+                    }
+                }
+            },
+            {
+                '$project': {
+                    'name': 1,
+                    'time_waste': {
+                        '$subtract': ['$work.start_time', '$assign_issues.start_time']
+                    }
+                }
+            },
+            {
+                '$group': {
+                    '_id': '$name',
+                    'total_time_waste': { '$sum': '$time_waste' }
+                }
+            },
+            {
+                '$project': {
+                    'username': '$_id',
+                    'total_time_waste': {
+                        '$divide': ['$total_time_waste', 1000]
+                    }
+                }
+            }
+        ]
+
+        if project_id != 0:
+            pipeline.insert(0, {
+                '$match': {
+                    '$or': [
+                        { 'assign_issues.project_id': project_id },
+                        { 'work.project_id': project_id }
                     ]
                 }
-            }
-        },
-        {
-            '$project': {
-                'username': 1,
-                'time_waste': {
-                    '$subtract': ['$work.start_time', '$assign_issues.start_time']
-                }
-            }
-        },
-        {
-            '$group': {
-                '_id': '$username',
-                'total_time_waste': { '$sum': '$time_waste' }
-            }
-        },
-        {
-            '$project': {
-                'username': '$_id',
-                'total_time_waste': {
-                    '$divide': ['$total_time_waste', 1000]
-                }
-            }
-        }
-        ]
+            })
 
         results = list(user_collection.aggregate(pipeline))
 
@@ -349,4 +365,3 @@ async def get_user_activity_chart(request: dict, conn = Depends(get_connection))
 
     except Exception as e:
         return {'status': False, 'data': [], 'message': str(e)}
-    

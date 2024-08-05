@@ -1,28 +1,35 @@
 from datetime import datetime
-from app.methods.data_entry import  update_work_of_user, insert_user, insert_project, insert_issues
+from app.methods.data_entry import  update_work_of_user, insert_user, insert_project, insert_issues, insertReOpen, reOpenIncrement
 from app.utils.date_utils import convert_to_ISC
 
-
 labels_list = {'Doing':0, 'Testing':1, 'Documentation':2}
+reOpen = 'Re-Open'
 def employee(payload, db):
     user = payload['user']
     
     employee = {'id':user['id']  , 'username':user['username'], 'name':user['name'], 'email':user['name'], 'avatar_url':user['avatar_url'], 'assign_issues':[]
             }
     insert_user(employee, db)
+    if 'assignees' in payload:
+        assign = payload['assignees'][0]
+        assigned_employee = {'id':assign['id']  , 'username':assign['username'], 'name':assign['name'], 'email':assign['name'], 'avatar_url':assign['avatar_url'], 'assign_issues':[]
+            }
+        insert_user(assigned_employee, db)
 
 def insert_work_in_user(payload, db):
     
     curr_work = []
     changed_works = [0,0,0]
-
-    for prev_label in payload['changes']['labels']['previous']:
-        if prev_label['title'] in labels_list:
-            changed_works[labels_list[prev_label['title']]] -= 1
+    previous_labels = payload['changes']['labels']['previous']
+    for label in previous_labels:
+        if label['title'] in labels_list:
+            changed_works[labels_list[label['title']]] -= 1
     
-    for curr_label in payload['changes']['labels']['current']:
-        if curr_label['title'] in labels_list:
-            changed_works[labels_list[curr_label['title']]] += 1
+    curr_labels = payload['changes']['labels']['current']
+    for label in curr_labels:
+
+        if label['title'] in labels_list:
+            changed_works[labels_list[label['title']]] += 1
     curr_time = datetime.now()
     for label in labels_list:
         if changed_works[labels_list[label]] == -1:
@@ -42,12 +49,29 @@ def insert_work_in_user(payload, db):
                 'end_time':None,
                 'duration': None
             })
-             
-    update_work_of_user(curr_work, payload['user']['username'], db)
+    user_id = payload['user']['username']
+    update_work_of_user(curr_work, user_id, db)
 
 
 def project(project_info, db):
     insert_project({'id':project_info['id'], 'name':project_info['name'], 'description':project_info['description'], 'web_url':project_info['web_url'], 'homepage':project_info['homepage']}, db)
 
-def issue(issue_object, project_info, changes, db): 
-        insert_issues({'id':issue_object['id'], 'title':issue_object['title'],'author_id':issue_object['author_id'], 'created_at':convert_to_ISC(issue_object['created_at']), 'updated_at':convert_to_ISC(issue_object['updated_at']),'project_id':project_info['id'], 'description':issue_object['description'], 'due_date':convert_to_ISC(issue_object['due_date']),'url':issue_object['url'], 'state':issue_object['state'], 'closed_at':None }, changes,  db)
+def issue(payload,  db): 
+        changes = payload['changes']
+        issue_object = payload['object_attributes']
+        project_info = payload['project']
+            
+        insert_issues(payload, {'id':issue_object['id'], 'title':issue_object['title'],'author_id':issue_object['author_id'], 'created_at':convert_to_ISC(issue_object['created_at']), 'updated_at':convert_to_ISC(issue_object['updated_at']),'project_id':project_info['id'], 'description':issue_object['description'], 'due_date':convert_to_ISC(issue_object['due_date']),'url':issue_object['url'], 'state':issue_object['state'], 'closed_at':None }, changes,  db)
+
+        if 'labels' in payload['changes']:
+            currLabel = payload['changes']['labels']['current']
+            prevLabels = payload['changes']['labels']['previous']
+            prevTitles = [obj['title'] for obj in prevLabels]
+            titles = [obj['title'] for obj in currLabel]
+
+            if 'Testing' in titles and reOpen in titles and ('Testing' not in prevTitles or reOpen not in prevTitles):
+                reOpenIncrement(issue_object['id'], db)
+            elif 'Testing' in titles and reOpen in titles:
+                insertReOpen(issue_object['id'],1,  db)
+            elif reOpen in titles:
+                insertReOpen(issue_object['id'],0,  db)

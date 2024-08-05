@@ -12,16 +12,17 @@ async def webhook(request: dict, db=Depends(get_connection)):
     insert_logs(payload, db)
     project_info = payload['project']
     project(project_info, db)
+    # print(payload)
     employee(payload, db)
     if payload['object_kind'] == 'issue':
         issue_object = payload['object_attributes']
+        
 
-        issue(issue_object, project_info, payload['changes'] , db)
-        if 'labels' in payload['changes']:
-            try:
-                insert_work_in_user(payload, db)
-            except Exception as e:
-                return {"status": False, "data": list([]), "message": e}
+        issue(payload, db)
+      
+            
+        if 'labels' in payload['changes'] :
+            insert_work_in_user(payload, db)
 
         if 'milestone_id' in payload['changes']:
             try:
@@ -31,13 +32,12 @@ async def webhook(request: dict, db=Depends(get_connection)):
             except Exception as e:
                 return {"status": False, "data": list([]), "message": e}
 
-        if 'assignees' in payload['changes']:
-            try:
-                id = payload['object_attributes']['id']
-                previous_assign = payload['changes']['assignees']['previous']
-                current_assign = payload['changes']['assignees']['current']
-                push_assign(id, previous_assign, current_assign, payload['project']['id'], db)  
-            except Exception as e:
-                return {"status": False, "data": list([]), "message": e}
+
+        if 'assignees' in payload['changes'] :
+            id = payload['object_attributes']['id']
+            project_id = payload['project']['id']
+            previous_assign = payload['changes']['assignees']['previous']
+            current_assign = payload['changes']['assignees']['current']
+            push_assign(id, previous_assign, current_assign, project_id, db)  
 
     

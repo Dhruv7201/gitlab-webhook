@@ -1,22 +1,14 @@
 import React from "react";
-import { TrendingUp } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import api from "@/utils/api";
-
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/_ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/_ui/chart";
+import { ChartConfig, ChartContainer } from "@/components/_ui/chart";
+import { secondsToHMSorDays } from "@/utils/timeFormate";
 
 const chartConfig = {
   total_time: {
@@ -43,23 +35,18 @@ type MilestoneData = {
   assign_time: number;
 };
 
-function formatMilliseconds(milliseconds: number) {
-  const totalSeconds = Math.floor(milliseconds / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const { total_time, assign_time } = payload[0].payload;
     return (
       <div className="custom-tooltip p-2 bg-white border border-gray-200 shadow-md rounded-md">
         <p className="label">{`Title: ${label}`}</p>
-        <p className="intro">{`Total Time: ${formatMilliseconds(total_time)}`}</p>
-        <p className="intro">{`Assigned Time: ${formatMilliseconds(assign_time)}`}</p>
+        <p className="intro">{`Total Time: ${secondsToHMSorDays(
+          total_time
+        )}`}</p>
+        <p className="intro">{`Assigned Time: ${secondsToHMSorDays(
+          assign_time
+        )}`}</p>
       </div>
     );
   }
@@ -67,24 +54,24 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function MultiBarChart() {
+export function MultiBarChart({ project_id }: { project_id: number }) {
   const [milestones, setMilestones] = React.useState<Milestone[]>([]);
   const [chartData, setChartData] = React.useState<MilestoneData[]>([]);
-  const [selectedMilestone, setSelectedMilestone] = React.useState<number | null>(null);
+  const [selectedMilestone, setSelectedMilestone] = React.useState<number>(0);
 
   React.useEffect(() => {
     const fetchMilestones = async () => {
       try {
-        const response = await api.post('/active_milestones');
+        const response = await api.post("/active_milestones");
         const { data } = response;
 
         if (data && data.data) {
           setMilestones(data.data);
         } else {
-          console.error('Unexpected data format:', data);
+          console.error("Unexpected data format:", data);
         }
       } catch (error) {
-        console.error('Error fetching milestones:', error);
+        console.error("Error fetching milestones:", error);
       }
     };
 
@@ -95,7 +82,8 @@ export function MultiBarChart() {
     if (selectedMilestone !== null) {
       const fetchChartData = async () => {
         try {
-          const response = await api.post('/milestone_issues', {
+          const response = await api.post("/milestone_issues", {
+            project_id: project_id,
             milestone_id: selectedMilestone,
           });
           const { data } = response;
@@ -103,16 +91,16 @@ export function MultiBarChart() {
           if (data && data.data) {
             setChartData(data.data);
           } else {
-            console.error('Unexpected data format:', data);
+            console.error("Unexpected data format:", data);
           }
         } catch (error) {
-          console.error('Error fetching chart data:', error);
+          console.error("Error fetching chart data:", error);
         }
       };
 
       fetchChartData();
     }
-  }, [selectedMilestone]);
+  }, [selectedMilestone, project_id]);
 
   return (
     <Card>
@@ -123,6 +111,9 @@ export function MultiBarChart() {
             className="p-2 text-sm rounded-md"
             onChange={(e) => setSelectedMilestone(Number(e.target.value))}
           >
+            <option key={0} value={0}>
+              Select Milestone
+            </option>
             {milestones.map((milestone) => (
               <option key={milestone.id} value={milestone.id}>
                 {milestone.title}
@@ -142,13 +133,23 @@ export function MultiBarChart() {
               axisLine={false}
               tickFormatter={(value) => {
                 const limit = 25;
-                return value.length > limit ? `${value.substring(0, limit)}...` : value;
+                return value.length > limit
+                  ? `${value.substring(0, limit)}...`
+                  : value;
               }}
             />
-            <YAxis tickFormatter={formatMilliseconds} />
+            <YAxis tickFormatter={secondsToHMSorDays} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="total_time" fill={chartConfig.total_time.color} radius={4} />
-            <Bar dataKey="assign_time" fill={chartConfig.assign_time.color} radius={4} />
+            <Bar
+              dataKey="total_time"
+              fill={chartConfig.total_time.color}
+              radius={4}
+            />
+            <Bar
+              dataKey="assign_time"
+              fill={chartConfig.assign_time.color}
+              radius={4}
+            />
           </BarChart>
         </ChartContainer>
       </CardContent>

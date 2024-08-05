@@ -2,7 +2,12 @@ import api from "@/utils/api";
 import * as React from "react";
 import { Label, Pie, PieChart } from "recharts";
 import Notification from "@/Notification";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/_ui/card";
 import {
   ChartConfig,
   ChartContainer,
@@ -53,8 +58,6 @@ const DonutLabels: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   };
 
   React.useEffect(() => {
-
-
     api
       .post(`/donut_labels/`, {
         project_id: selectedProjectId,

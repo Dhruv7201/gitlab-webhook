@@ -47,7 +47,7 @@ const ChartsPage = () => {
         <CustomChart selectedProjectId={selectedProjectId} />
       </div>
       <div className="flex flex-col gap-4 h-full">
-        <MultiBarChart />
+        <MultiBarChart project_id={selectedProjectId} />
       </div>
       <div className="flex flex-col gap-4 h-full">
         <WorkBarChart selectedProjectId={selectedProjectId} />

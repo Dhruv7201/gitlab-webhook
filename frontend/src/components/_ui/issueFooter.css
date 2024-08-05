@@ -1,0 +1,20 @@
+.duration-bar {
+    position: relative;
+    color: black;
+    text-align: left;
+    padding-left: 10px;
+  }
+  
+  .percentage-bar {
+    position: relative;
+    color: black;
+    text-align: left;
+    padding-left: 10px;
+  }
+  
+  .percentage-text {
+    position: relative;
+    color: black;
+    text-align: right;
+    padding-right: 10px;
+  }

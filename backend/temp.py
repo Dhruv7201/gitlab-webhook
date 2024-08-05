@@ -2,7 +2,7 @@ import requests
 
 # Your GitLab instance URL and Personal Access Token (PAT)
 gitlab_url = "https://code.ethicsinfotech.in/"
-private_token = "glpat-xfjN_GfV_sKg2xb1Lteo"
+private_token = "glpat-bKmzyXVs_Wnyrzky3bEQ"
 
 # Webhook URL to which issue events will be sent
 webhook_url = "https://apidev.gitrepo.ethicstechnology.net/webhook"
@@ -36,19 +36,17 @@ print(f"Total projects: {len(projects)}")
 
 for project in projects:
     project_id = project['id']
-
-    if project['name'] == 'GTPOS':
-        add_webhook_url = f"{gitlab_url}/api/v4/projects/{project_id}/hooks"
-        
-        webhook_data = {
-            "url": webhook_url,
-            "issues_events": False,
-            "enable_ssl_verification": True
-        }
-        
-        response = requests.post(add_webhook_url, headers=headers, json=webhook_data)
-        
-        if response.status_code == 201:
-            print(f"Successfully added webhook to project {project['name']}")
-        else:
-            print(f"Failed to add webhook to project {project['name']}: {response.content}")
+    add_webhook_url = f"{gitlab_url}/api/v4/projects/{project_id}/hooks"
+    
+    webhook_data = {
+        "url": webhook_url,
+        "issues_events": False,
+        "enable_ssl_verification": True
+    }
+    
+    response = requests.post(add_webhook_url, headers=headers, json=webhook_data)
+    
+    if response.status_code == 201:
+        print(f"Successfully added webhook to project {project['name']}")
+    else:
+        print(f"Failed to add webhook to project {project['name']}: {response.content}")

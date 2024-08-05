@@ -1,10 +1,28 @@
-from app.models  import user_model, project_model
+from app.models  import  project_model
 from datetime import datetime
 
 def insert_logs(data, db):
     logs_collection = db['logs']
     data['inserted_at'] = datetime.now()
     logs_collection.insert_one(data)
+
+def insertReOpen(issue_id, count,   db):
+
+    issue_collection = db['issues']
+    filter = {'id':issue_id}
+    curr_issue = issue_collection.find_one(filter)
+    if 'Re-Open' not in curr_issue:
+        update = {"$set": {"Re-Open": count}}
+        issue_collection.update_one(filter, update)
+
+def reOpenIncrement(issue_id, db):
+    insertReOpen(issue_id, 0,   db)
+    issue_collection = db['issues']
+    filter = {'id':issue_id}
+    curr_issue = issue_collection.find_one(filter)
+    currReOpen = curr_issue["Re-Open"]
+    update = {"$set": {"Re-Open": currReOpen+1}}
+    issue_collection.update_one(filter, update)
 
 def insert_project(project:project_model, db):
     curr_time = datetime.now()
@@ -46,13 +64,19 @@ def update_work_of_user(curr_work_arr, username, db):
             update = {"$set": {"work": work_arr}}
             user_collection.update_one(filter, update)
 
-def insert_issues(issue, changes,  db):
+def insert_issues(payload, issue, changes,  db):
     issue_collection = db['issues']
 
     filter = {'id':issue['id']}
     curr_issue = issue_collection.find_one(filter)
     if not curr_issue:
         issue_collection.insert_one(issue)
+
+        if  'assignees' in payload and payload['assignees'] != []:
+            id = payload['object_attributes']['id']
+            current_assign = payload['assignees']
+            push_new_assign(id, current_assign, payload['project']['id'], db) 
+
     else:
         for key in changes:
             if key =='state_id':
@@ -80,7 +104,6 @@ def push_milestone(issue_id, curr_milestone_id, updated_at ,db):
     update = {"$push": {'milestone':curr_milestone_info}}
     issue_collection.update_one(filter, update)
 
-
 def push_assign(id, previous_assign, current_assign, project_id, db):
     issue_collection = db['issues']
     curr_time = datetime.now()
@@ -93,28 +116,22 @@ def push_assign(id, previous_assign, current_assign, project_id, db):
         issue_collection.update_one(filter, update)
     else:
         assign_arr = issue['assign']
-        for index in range(len(assign_arr)-1, -1, -1):
-            if assign_arr[index]['user_id'] == previous_assign[0]['id']:
-                
-                assign_arr[index]['end_time'] = curr_time
-                assign_arr[index]['duration'] = (assign_arr[index]['end_time'] - assign_arr[index]['start_time']).total_seconds()
-                break
+        
+        assign_arr[-1]['end_time'] = curr_time
+        assign_arr[-1]['duration'] = (assign_arr[-1]['end_time'] - assign_arr[-1]['start_time']).total_seconds()
         if current_assign != []:
             new_assign = {'user_id' : current_assign[0]['id'], 'start_time':curr_time, 'end_time':None, 'duration':None}
             assign_arr.append(new_assign)
         update = {'$set':{'assign':assign_arr}}
         issue_collection.update_one(filter, update)
 
-
-
 def push_assign_to_user(issue_id,  prev_assign, curr_assign, project_id, db):
 
     curr_time = datetime.now()
     user_collection = db['users']
     if curr_assign != [] :
-        
         added_issue = {
-            'issues_id':issue_id, 
+            'issue_id':issue_id, 
             'project_id':project_id,
             'start_time':curr_time,
             'end_time':None,
@@ -139,9 +156,39 @@ def push_assign_to_user(issue_id,  prev_assign, curr_assign, project_id, db):
         else:
             assign_issue_arr = user_collection.find_one(filter)['assign_issues']
             for index in range(len(assign_issue_arr)-1, -1, -1):
-                if assign_issue_arr[index]['issues_id'] == issue_id and assign_issue_arr[index]['start_time'] and not assign_issue_arr[index]['end_time']:
+                if assign_issue_arr[index]['issue_id'] == issue_id and assign_issue_arr[index]['start_time'] and not assign_issue_arr[index]['end_time']:
                     assign_issue_arr[index]['end_time'] = curr_time
                     assign_issue_arr[index]['duration'] = (curr_time - assign_issue_arr[index]['start_time']).total_seconds()
                     update = {'$set':{'assign_issues':assign_issue_arr}}
                     user_collection.update_one(filter, update)
                     break 
+
+def push_new_assign(id, current_assign, project_id, db):
+    issue_collection = db['issues']
+    curr_time = datetime.now()
+    filter = {'id':id}
+    first_assign = {'user_id':current_assign[0]['id'], 'start_time':curr_time, 'end_time':None, 'duration':None}
+    update = {'$push':{'assign':first_assign}}
+    issue_collection.update_one(filter, update)
+    push_new_assign_to_user(id, current_assign, project_id, db)
+
+def push_new_assign_to_user(issue_id, current_assign, project_id, db):
+    curr_time = datetime.now()
+    user_collection = db['users']
+    if current_assign != [] :
+        
+        added_issue = {
+            'issue_id':issue_id, 
+            'project_id':project_id,
+            'start_time':curr_time,
+            'end_time':None,
+            'duration':None
+            }
+        filter = {'username':current_assign[0]['username']}
+        if not user_collection.find_one(filter):
+            user = current_assign[0]
+            employee = {'id':user['id'],  'username':user['username'], 'name':user['name'], 'email':user['username'], 'avatar_url':user['avatar_url'], 'assign_issues':[added_issue]}
+            insert_user(employee, db)
+        else:
+            update = {'$push':{'assign_issues':added_issue}}
+            user_collection.update_one(filter, update)

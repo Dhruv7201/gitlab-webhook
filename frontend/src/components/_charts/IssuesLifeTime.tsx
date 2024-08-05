@@ -39,14 +39,16 @@ type MilestoneData = {
   assign_time: number;
 };
 
-const getColor = (index: number) => {
+const getColor = (label: string) => {
   const colors = [
     "hsl(var(--chart-1))",
     "hsl(var(--chart-2))",
     "hsl(var(--chart-3))",
     "hsl(var(--chart-4))",
   ];
-  return colors[index % colors.length];
+  if (label === "Development") return colors[2];
+  if (label === "Testing") return colors[1];
+  if (label === "Doing") return colors[0];
 };
 
 const formatDuration = (seconds: number) => {
@@ -76,7 +78,7 @@ const CustomTooltip = ({ payload, label, chartConfig }: any) => {
     >
       <p className="label">{issueTitle}</p>
       {Object.keys(data).map((key) =>
-        key !== "issue" ? (
+        key !== "issue" && key !== "issueId" ? (
           <p
             key={key}
             className="intro"
@@ -148,7 +150,7 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId }) => {
           (acc: ChartConfig, label: string, index: number) => {
             acc[label] = {
               label: label,
-              color: getColor(index),
+              color: getColor(label),
             };
             return acc;
           },

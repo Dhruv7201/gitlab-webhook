@@ -5,6 +5,7 @@ import api from "@/utils/api";
 type TaskData = {
   task: string;
   assigned: string;
+  issue_url: string;
 };
 
 type ApiResponse = {
@@ -62,8 +63,15 @@ const AssignTaskList: React.FC<Props> = ({ selectedProjectId }) => {
               key={index}
               className="border-b border-gray-200 hover:bg-gray-100 cursor-pointer"
             >
-              <td className="py-2 px-4" onClick={() => console.log(task)}>
-                {task.task}
+              <td className="py-2 px-4">
+                <a
+                  href={task.issue_url}
+                  className="underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {task.task}
+                </a>
               </td>
               <td className="py-2 px-4">{task.assigned}</td>
             </tr>

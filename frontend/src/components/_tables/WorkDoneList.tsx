@@ -2,6 +2,7 @@ import React from "react";
 import api from "@/utils/api";
 import { useState, useEffect } from "react";
 import Notification from "../../Notification";
+import { secondsToHMSorDays } from "@/utils/timeFormate";
 
 type Issue = {
   issue_title: string;
@@ -23,26 +24,6 @@ interface Props {
 const UserProjectData: React.FC<Props> = ({ selectedProjectId }) => {
   const [workData, setWorkData] = useState<Project | null>(null);
 
-  const renderLabel = (props: any) => {
-    const seconds = props;
-    var min = null;
-    var hr = null;
-    var sec = null;
-
-    hr = Math.floor(seconds / 3600);
-    if (hr == 0) {
-      hr = "00";
-    }
-
-    min = Math.floor((seconds % 3600) / 60);
-    if (min == 0) {
-      min = "00";
-    }
-
-    sec = Math.floor(seconds % 60);
-    return `${hr}:${min}:${sec}`;
-  };
-
   function formatData(data: any) {
     return {
       ...data,
@@ -52,7 +33,7 @@ const UserProjectData: React.FC<Props> = ({ selectedProjectId }) => {
           issues: item.issues.map((issue) => {
             return {
               ...issue,
-              total_duration: renderLabel(issue.total_duration),
+              total_duration: secondsToHMSorDays(issue.total_duration),
             };
           }),
         };
@@ -60,7 +41,6 @@ const UserProjectData: React.FC<Props> = ({ selectedProjectId }) => {
     };
   }
   useEffect(() => {
-
     api
       .post("/user_work_done_list", {
         project_id: selectedProjectId,
