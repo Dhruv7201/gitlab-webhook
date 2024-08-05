@@ -22,6 +22,13 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from "@/components/_ui/chart";
+import { secondsToHMSorDays } from "@/utils/timeFormate";
+import { DateRange } from "react-day-picker";
+
+interface Props {
+  selectedProjectId: number;
+  dateRange?: DateRange;
+}
 
 type ChartData = {
   issue: string;
@@ -30,6 +37,7 @@ type ChartData = {
 
 interface Props {
   selectedProjectId: number;
+  dateRange?: DateRange;
 }
 
 type MilestoneData = {
@@ -49,16 +57,6 @@ const getColor = (label: string) => {
   if (label === "Development") return colors[2];
   if (label === "Testing") return colors[1];
   if (label === "Doing") return colors[0];
-};
-
-const formatDuration = (seconds: number) => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.round(seconds % 60);
-
-  return `${hours.toString().padStart(2, "0")}:${minutes
-    .toString()
-    .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
 const CustomTooltip = ({ payload, label, chartConfig }: any) => {
@@ -84,7 +82,7 @@ const CustomTooltip = ({ payload, label, chartConfig }: any) => {
             className="intro"
             style={{ color: data[key] ? "#000" : "#ccc" }}
           >
-            {chartConfig[key]?.label}: {formatDuration(data[key] as number)}
+            {chartConfig[key]?.label}: {secondsToHMSorDays(data[key])}
           </p>
         ) : null
       )}
@@ -92,7 +90,7 @@ const CustomTooltip = ({ payload, label, chartConfig }: any) => {
   );
 };
 
-const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId }) => {
+const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
   const [chartConfig, setChartConfig] = React.useState<ChartConfig>({});
   const [milestones, setMilestones] = React.useState<MilestoneData[]>([]);
@@ -119,10 +117,13 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId }) => {
   }, []);
 
   React.useEffect(() => {
+    console.log("dateRange", dateRange);
     api
       .post(`/issue_lifetime`, {
         project_id: selectedProjectId,
+        all_milestones: milestones.map((milestone) => milestone.id),
         milestone_id: selectedMilestone,
+        dateRange: dateRange,
       })
       .then((response) => {
         const data = response.data;
@@ -163,11 +164,17 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId }) => {
       .catch((_error: any) => {
         Notification({ message: "Problem fetching issues", type: "error" });
       });
-  }, [selectedProjectId, selectedMilestone]);
+  }, [selectedProjectId, selectedMilestone, dateRange]);
 
   const handleBarClick = (data: any) => {
-    console.log("data", data);
-    const issueId = data.issueId;
+    let issueId = data.issueId;
+    console.log("issueId", issueId);
+    if (issueId === undefined) {
+      const issue = chartData.find((issue) => issue.title === data.issue);
+      if (issue) {
+        issueId = issue.issueId;
+      }
+    }
     navigate(`/issue/${issueId}`);
   };
 
@@ -178,13 +185,19 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId }) => {
           <CardTitle>Bar Chart - User Issue Durations</CardTitle>
           <div className="flex items-center gap-4">
             <select
-              className="p-2 text-sm rounded-md"
+              className="p-3 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring focus:ring-blue-500 focus:border-blue-500 transition duration-200 ease-in-out"
               onChange={(e) => setSelectedMilestone(Number(e.target.value))}
               value={selectedMilestone}
             >
-              <option value={0}>Select Milestone</option>
+              <option value={0} className="text-gray-500 bg-gray-100">
+                Select Milestone
+              </option>
               {milestones.map((milestone) => (
-                <option key={milestone.id} value={milestone.id}>
+                <option
+                  key={milestone.id}
+                  value={milestone.id}
+                  className="text-gray-700 bg-white hover:bg-blue-100"
+                >
                   {milestone.title}
                 </option>
               ))}
@@ -205,6 +218,7 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId }) => {
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
+              className="hover:cursor-pointer"
               dataKey="issue"
               tickLine={false}
               axisLine={false}
@@ -214,12 +228,21 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId }) => {
               tickFormatter={(value) =>
                 value.length > 20 ? value.slice(0, 20) + "..." : value
               }
+              onClick={handleBarClick}
             />
-            <YAxis tickFormatter={(value) => formatDuration(value)} />
-            <Tooltip content={<CustomTooltip chartConfig={chartConfig} />} />
-            <Legend />
+            <YAxis tickFormatter={(value) => secondsToHMSorDays(value)} />
+            <Tooltip
+              content={
+                <CustomTooltip
+                  chartConfig={chartConfig}
+                  onClick={handleBarClick}
+                />
+              }
+            />
+            <Legend layout="horizontal" verticalAlign="top" align="center" />
             {Object.keys(chartConfig).map((key, index) => (
               <Bar
+                className="hover:cursor-pointer"
                 key={index}
                 dataKey={key}
                 fill={chartConfig[key].color}

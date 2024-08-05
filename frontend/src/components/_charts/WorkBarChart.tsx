@@ -74,10 +74,10 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
     return (
       <div className="bg-white border border-gray-300 p-2 rounded">
         <p>
-          <strong>Time:</strong> {secondsToHMSorDays(total_duration)}
+          <strong>Name:</strong> {title || "No Name"}
         </p>
         <p>
-          <strong>Name:</strong> {title || "No Name"}
+          <strong>Time:</strong> {secondsToHMSorDays(total_duration)}
         </p>
       </div>
     );

@@ -9,7 +9,12 @@ import {
   YAxis,
 } from "recharts";
 import Notification from "@/Notification";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/_ui/card";
 import {
   ChartConfig,
   ChartContainer,
@@ -44,8 +49,6 @@ const CustomChart: React.FC<Props> = ({ selectedProjectId }) => {
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
 
   React.useEffect(() => {
-
-
     api
       .post(`/work_done`, {
         project_id: selectedProjectId,

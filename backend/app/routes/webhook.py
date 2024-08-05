@@ -12,7 +12,6 @@ async def webhook(request: dict, db=Depends(get_connection)):
     insert_logs(payload, db)
     project_info = payload['project']
     project(project_info, db)
-    # print(payload)
     employee(payload, db)
     if payload['object_kind'] == 'issue':
         issue_object = payload['object_attributes']

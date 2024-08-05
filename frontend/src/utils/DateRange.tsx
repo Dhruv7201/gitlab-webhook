@@ -12,16 +12,16 @@ import {
 } from "@/components/_ui/popover";
 
 interface Props {
-  date?: DateRange;
+  date: DateRange;
   setDate: (date: DateRange) => void;
   className?: string;
 }
 
 export function DatePickerWithRange({ date, setDate, className }: Props) {
   const handleSelect = (range: DateRange | undefined) => {
-    if (range?.from && range?.to) {
-      setDate({ from: range.from, to: range.to });
-    } else if (range?.from) {
+    if (range && range.from && range.to) {
+      setDate(range);
+    } else if (range && range.from) {
       setDate({ from: range.from, to: undefined });
     } else {
       setDate({ from: undefined, to: undefined });
@@ -37,11 +37,11 @@ export function DatePickerWithRange({ date, setDate, className }: Props) {
             variant={"outline"}
             className={cn(
               "w-[300px] justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              !date.from && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
+            {date.from ? (
               date.to ? (
                 <>
                   {format(date.from, "LLL dd, y")} -{" "}
@@ -59,7 +59,7 @@ export function DatePickerWithRange({ date, setDate, className }: Props) {
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
+            defaultMonth={date.from}
             selected={date}
             onSelect={handleSelect}
             numberOfMonths={2}

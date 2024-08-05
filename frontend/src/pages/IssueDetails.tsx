@@ -3,13 +3,14 @@ import api from "@/utils/api";
 import { useParams } from "react-router-dom";
 import IssueComponent from "@/components/_ui/IssueComponent";
 import IssueFooter from "@/components/_ui/IssueFooter";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, CopyCheck, ExternalLink } from "lucide-react";
 import Notification from "@/Notification";
 
 const IssueDetails = () => {
   const { issueId } = useParams();
   const currIssueId = Number(issueId);
   const [issueInfo, setIssueInfo] = useState<any>(null);
+  const [copy, setCopy] = useState(false);
 
   useEffect(() => {
     api
@@ -33,7 +34,6 @@ const IssueDetails = () => {
   };
 
   const exportIssueDetails = (issueId: number) => {
-    // get file response from server
     api
       .post("/export_issue_details", {
         issue_id: issueId,
@@ -51,6 +51,13 @@ const IssueDetails = () => {
       });
   };
 
+  const copyID = () => {
+    setCopy(true);
+    setTimeout(() => {
+      setCopy(false);
+    }, 4000);
+  };
+
   return (
     <>
       {issueInfo && (
@@ -63,13 +70,26 @@ const IssueDetails = () => {
               <span className="text-sm text-gray-500">
                 (Issue ID: {currIssueId})
               </span>
-              <Copy
-                size={16}
-                className="cursor-pointer"
-                onClick={() => {
-                  copyToClipboard(currIssueId.toString());
-                }}
-              />
+              <>
+                {copy ? (
+                  <div className="flex items-center space-x-2">
+                    <CopyCheck
+                      size={16}
+                      className="cursor-pointer text-green-500"
+                    />
+                    <span className="text-green-500">Copied</span>
+                  </div>
+                ) : (
+                  <Copy
+                    size={16}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      copyToClipboard(currIssueId.toString());
+                      copyID();
+                    }}
+                  />
+                )}
+              </>
             </div>
             <button
               className="mt-2 text-sm text-blue-500 cursor-pointer focus:outline-none"

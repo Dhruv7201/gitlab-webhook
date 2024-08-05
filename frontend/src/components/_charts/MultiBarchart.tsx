@@ -84,6 +84,7 @@ export function MultiBarChart({ project_id }: { project_id: number }) {
         try {
           const response = await api.post("/milestone_issues", {
             project_id: project_id,
+            all_milestones: milestones.map((milestone) => milestone.id),
             milestone_id: selectedMilestone,
           });
           const { data } = response;
@@ -108,14 +109,18 @@ export function MultiBarChart({ project_id }: { project_id: number }) {
         <div className="flex items-center justify-between w-full">
           <CardTitle>Time Spent on Milestones</CardTitle>
           <select
-            className="p-2 text-sm rounded-md"
+            className="p-3 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring focus:ring-blue-500 focus:border-blue-500 transition duration-200 ease-in-out"
             onChange={(e) => setSelectedMilestone(Number(e.target.value))}
           >
-            <option key={0} value={0}>
+            <option key={0} value={0} className="text-gray-500 bg-gray-100">
               Select Milestone
             </option>
             {milestones.map((milestone) => (
-              <option key={milestone.id} value={milestone.id}>
+              <option
+                key={milestone.id}
+                value={milestone.id}
+                className="text-gray-700 bg-white hover:bg-blue-100"
+              >
                 {milestone.title}
               </option>
             ))}
@@ -132,7 +137,7 @@ export function MultiBarChart({ project_id }: { project_id: number }) {
               tickMargin={10}
               axisLine={false}
               tickFormatter={(value) => {
-                const limit = 25;
+                const limit = 10;
                 return value.length > limit
                   ? `${value.substring(0, limit)}...`
                   : value;

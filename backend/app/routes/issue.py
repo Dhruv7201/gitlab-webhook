@@ -1,41 +1,83 @@
 from fastapi import APIRouter, Depends
 from app.db import get_connection
+from datetime import datetime
 
 router = APIRouter()
+
+
 @router.post("/issue_lifetime", tags=["issue"])
 async def issue_lifetime(request: dict, conn = Depends(get_connection)):
     try:
         project_id = request.get("project_id")
         milestone_id = request.get("milestone_id")
+        all_milestones = request.get("all_milestones")
+        dateRange = request.get("dateRange")
+
         user_collection = conn["users"]
-        display_type = "work"
+
+        date_from = None
+        date_to = None
+        if dateRange:
+            if 'from' in dateRange:
+                dateRange['from'] = dateRange['from'].split('T')[0]
+                date_from = datetime.strptime(dateRange['from'], "%Y-%m-%d")
+            if 'to' in dateRange:
+                dateRange['to'] = dateRange['to'].split('T')[0]
+                date_to = datetime.strptime(dateRange['to'], "%Y-%m-%d")
 
         aggregate = [
-            { "$unwind": f"${display_type}" },
-            { "$match": { f"{display_type}.end_time": { "$ne": None } } }
+            {
+                "$unwind": "$work"
+            },
+            { 
+                "$match": { "work.end_time": { "$ne": None } }
+            }
         ]
 
-        if project_id != 0:
+        if project_id is not None and project_id != 0:
             aggregate.append(
-                { "$match": { f"{display_type}.project_id": project_id } }
+                { "$match": { "work.project_id": project_id } }
+            )
+
+        # Add date range filter
+        if date_from and date_to:
+            aggregate.append(
+                { "$match": { "work.start_time": { "$gte": date_from, "$lte": date_to } } }
+            )
+        elif date_from:
+            aggregate.append(
+                { "$match": { "work.start_time": { "$gte": date_from } } }
+            )
+        elif date_to:
+            aggregate.append(
+                { "$match": { "work.start_time": { "$lte": date_to } } }
             )
 
         aggregate += [
             {
                 "$lookup": {
                     "from": "issues",
-                    "localField": f"{display_type}.issue_id",
+                    "localField": "work.issue_id",
                     "foreignField": "id",
                     "as": "issue_info"
                 }
             },
-            { "$unwind": "$issue_info" },
+            { "$unwind": "$issue_info" }
         ]
         
-        if milestone_id != 0:
+        if milestone_id is not None and milestone_id != 0:
             aggregate.append(
                 { "$match": { "issue_info.milestone.milestone_id": milestone_id } }
             )
+        else:
+            if not all_milestones:
+                aggregate.append(
+                    { "$match": { "issue_info.milestone.milestone_id": { "$ne": None } } }
+                )
+            else:
+                aggregate.append(
+                    { "$match": { "issue_info.milestone.milestone_id": { "$in": all_milestones } } }
+                )
 
         aggregate += [
             {
@@ -43,12 +85,12 @@ async def issue_lifetime(request: dict, conn = Depends(get_connection)):
                     "_id": "$issue_info.title",
                     "work": {
                         "$push": {
-                            "label": f"${display_type}.label",
-                            "duration": f"${display_type}.duration",
-                            "start_time": f"${display_type}.start_time"
+                            "label": "$work.label",
+                            "duration": "$work.duration",
+                            "start_time": "$work.start_time"
                         }
                     },
-                    "total_duration": { "$sum": f"${display_type}.duration" },
+                    "total_duration": { "$sum": "$work.duration" },
                     "id": { "$first": "$issue_info.id" }
                 }
             },
@@ -101,8 +143,6 @@ async def issue_lifetime(request: dict, conn = Depends(get_connection)):
 
 
 
-
-
 @router.post("/issue_status", tags=["issue"])
 async def issue_status(request: dict, conn = Depends(get_connection)):
     try:
@@ -140,6 +180,7 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
     try:
         milestone_id = request.get("milestone_id")
         project_id = request.get("project_id")
+        all_milestones = request.get("all_milestones")
         user_collection = conn["issues"]
         from datetime import datetime
         current_time = datetime.utcnow()
@@ -149,6 +190,11 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
 
         if milestone_id and milestone_id != 0:
             match_criteria["milestone.milestone_id"] = milestone_id
+        else:
+            if not all_milestones:
+                match_criteria["milestone.milestone_id"] = { "$ne": None }
+            else:
+                match_criteria["milestone.milestone_id"] = { "$in": all_milestones }
 
         if project_id and project_id != 0:
             match_criteria["project_id"] = project_id
@@ -203,11 +249,10 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
         result = user_collection.aggregate(aggregate)
         data = list(result)
 
-        print('total issues in milestone', len(data))
-
         # Convert _id to string for response
         for d in data:
             d['_id'] = str(d['_id'])
+            d['total_time'] = d['total_time'] / 60
 
         return {
             "status": True,
@@ -308,68 +353,7 @@ def get_user_total_duration_time(request: dict, conn=Depends(get_connection)):
         'message': 'Successfully returned user with total_duration and time'
     }
 
-
-
-@router.post("/get_user_by_work", tags=['issue'])
-def get_user_by_work(request:dict, conn=Depends(get_connection)):
-    issue_id = request.get('issue_id')
-    users_collection = conn['users']
-    aggregation = [
-            {'$unwind':'$work'},
-            {'$match':{'work.issue_id':issue_id}},
-            {'$sort':{
-                'work.start_time':1
-            }},
-            {
-                '$project':{
-                '_id':0,
-                'name':'$name',
-                'started_at':'$work.start_time',
-                'label_info':{'start_time':'$work.start_time', 
-                                        'label':'$work.label',
-                                        'duration':{'$cond':{
-                                            'if': {'$ne': ['$work.end_time', None]},
-                                        'then':'$work.duration',
-                                        'else':{ "$subtract": ["$$NOW", "$work.start_time"] },
-                                        
-                                        }}
-                            }
-                            
-                    }
-            },
-        ]
-
-    response =  users_collection.aggregate(aggregation)
-    result = list(response)
-    total_time = 0
-    for individual_data in result:
-        total_time += individual_data['label_info']['duration']
-
-    for individual_data in result:
-        individual_data['label_info']['percentage'] = (individual_data['label_info']['duration']*100)/total_time
-    data = []
-    for res in result:
-        data.append(res)
-    return {'status':True, 'data':data, 'message':'Successfully return user with total_duration and time'}
-    
-
  
-
-
-
-def format_duration(seconds):
-    # Utility function to convert seconds to a formatted string
-    days, seconds = divmod(seconds, 86400)
-    hours, seconds = divmod(seconds, 3600)
-    minutes, seconds = divmod(seconds, 60)
-    if days > 0:
-        return f"{days}d {hours}h {minutes}m {seconds}s"
-    elif hours > 0:
-        return f"{hours}h {minutes}m {seconds}s"
-    elif minutes > 0:
-        return f"{minutes}m {seconds}s"
-    else:
-        return f"{seconds}s"
 
 @router.post("/export_issue_details", tags=['issue'])
 def export_issue_details(request: dict, conn=Depends(get_connection)):

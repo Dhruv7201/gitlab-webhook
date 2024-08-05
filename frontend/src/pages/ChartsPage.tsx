@@ -13,52 +13,43 @@ import { DateRange } from "react-day-picker";
 import { MultiBarChart } from "@/components/_charts/MultiBarchart";
 import IssuesLifeTime from "@/components/_charts/IssuesLifeTime";
 
-const sevenDaysAgo = () => {
+const monthAgo = () => {
   const date = new Date();
-  date.setDate(date.getDate() - 7);
+  date.setMonth(date.getMonth() - 1);
   return date;
 };
 
 const ChartsPage = () => {
   const [selectedProjectId, setSelectedProjectId] = React.useState(0);
   const [date, setDate] = React.useState<DateRange>({
-    from: sevenDaysAgo(),
+    from: monthAgo(),
     to: new Date(),
   });
 
   return (
     <>
-      <div className="flex justify-start gap-4 p-4">
-        <EditableDropdown setSelectedProjectId={setSelectedProjectId} />
-        {/* <DatePickerWithRange date={date} setDate={setDate} /> */}
+      <div className="p-4">
+        <div className="flex gap-4 mb-4">
+          <EditableDropdown setSelectedProjectId={setSelectedProjectId} />
+          <DatePickerWithRange date={date} setDate={setDate} />
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4 h-full">
-        <IssuesLifeTime selectedProjectId={selectedProjectId} />
-      </div>
-      <div className="flex flex-col gap-4 h-full">
-        <AreaChartCom selectedProjectId={selectedProjectId} />
-      </div>
-
-      <div className="flex flex-col gap-4 h-full">
-        <Barchart selectedProjectId={selectedProjectId} />
-      </div>
-      <div className="flex flex-col gap-4 h-full">
-        <CustomChart selectedProjectId={selectedProjectId} />
-      </div>
-      <div className="flex flex-col gap-4 h-full">
-        <MultiBarChart project_id={selectedProjectId} />
-      </div>
-      <div className="flex flex-col gap-4 h-full">
-        <WorkBarChart selectedProjectId={selectedProjectId} />
-      </div>
-      <div className="flex flex-col gap-4  h-full">
-        <WorkDoneList selectedProjectId={selectedProjectId} />
-      </div>
-      <div className="flex flex-col gap-4  h-full">
-        <AssignTaskList selectedProjectId={selectedProjectId} />
-      </div>
-      <div className="flex flex-col gap-4 h-full">
+      <div className="space-y-4 p-4">
+        <IssuesLifeTime
+          selectedProjectId={selectedProjectId}
+          dateRange={date}
+        />
+        <AreaChartCom selectedProjectId={selectedProjectId} dateRange={date} />
+        <Barchart selectedProjectId={selectedProjectId} dateRange={date} />
+        <CustomChart selectedProjectId={selectedProjectId} dateRange={date} />
+        <MultiBarChart project_id={selectedProjectId} dateRange={date} />
+        <WorkBarChart selectedProjectId={selectedProjectId} dateRange={date} />
+        <WorkDoneList selectedProjectId={selectedProjectId} dateRange={date} />
+        <AssignTaskList
+          selectedProjectId={selectedProjectId}
+          dateRange={date}
+        />
         <DonutLabels selectedProjectId={selectedProjectId} dateRange={date} />
       </div>
     </>

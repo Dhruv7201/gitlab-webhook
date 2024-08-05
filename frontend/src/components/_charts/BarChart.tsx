@@ -82,10 +82,10 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
     return (
       <div className="bg-white border border-gray-300 p-2 rounded">
         <p>
-          <strong>Time:</strong> {secondsToHMSorDays(time_waste)}
+          <strong>Name:</strong> {name || "No Name"}
         </p>
         <p>
-          <strong>Name:</strong> {name || "No Name"}
+          <strong>Time:</strong> {secondsToHMSorDays(time_waste)}
         </p>
       </div>
     );
