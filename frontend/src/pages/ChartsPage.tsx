@@ -4,7 +4,6 @@ import Barchart from "@/components/_charts/BarChart";
 import React from "react";
 import EditableDropdown from "../components/_ui/EditableDropdown";
 import CustomChart from "@/components/_charts/CustomChart";
-import RadialChart from "@/components/_charts/RadialChart";
 import WorkBarChart from "@/components/_charts/WorkBarChart";
 import WorkDoneList from "@/components/_tables/WorkDoneList";
 import AssignTaskList from "@/components/_tables/AssignTaskList";
@@ -12,6 +11,8 @@ import { DatePickerWithRange } from "@/utils/DateRange";
 import { DateRange } from "react-day-picker";
 import { MultiBarChart } from "@/components/_charts/MultiBarchart";
 import IssuesLifeTime from "@/components/_charts/IssuesLifeTime";
+import { Button } from "@/components/_ui/button";
+import { MonitorDown } from "lucide-react";
 
 const monthAgo = () => {
   const date = new Date();
@@ -26,12 +27,31 @@ const ChartsPage = () => {
     to: new Date(),
   });
 
+  const dailyReportDownload = () => {
+    const api = import.meta.env.VITE_API_URL;
+    window.open(`${api}/daily_work_report`);
+  };
+
   return (
     <>
       <div className="p-4">
-        <div className="flex gap-4 mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between md:gap-4 gap-2">
           <EditableDropdown setSelectedProjectId={setSelectedProjectId} />
           <DatePickerWithRange date={date} setDate={setDate} />
+          <div className="flex flex-col md:flex-row md:ml-auto md:gap-4 gap-2">
+            <div className="flex gap-2 md:ml-auto">
+              <Button
+                onClick={() => setDate({ from: monthAgo(), to: new Date() })}
+                className="bg-blue-600"
+              >
+                Reset
+              </Button>
+              <Button className="bg-blue-600" onClick={dailyReportDownload}>
+                Export Report
+                <MonitorDown size={16} className="ml-2" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 

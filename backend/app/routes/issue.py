@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.db import get_connection
-from datetime import datetime
+from app.utils.date_utils import formate_date_range
 
 router = APIRouter()
 
@@ -11,46 +11,36 @@ async def issue_lifetime(request: dict, conn = Depends(get_connection)):
         project_id = request.get("project_id")
         milestone_id = request.get("milestone_id")
         all_milestones = request.get("all_milestones")
-        dateRange = request.get("dateRange")
-
+        date_range = request.get("date_range")
         user_collection = conn["users"]
 
-        date_from = None
-        date_to = None
-        if dateRange:
-            if 'from' in dateRange:
-                dateRange['from'] = dateRange['from'].split('T')[0]
-                date_from = datetime.strptime(dateRange['from'], "%Y-%m-%d")
-            if 'to' in dateRange:
-                dateRange['to'] = dateRange['to'].split('T')[0]
-                date_to = datetime.strptime(dateRange['to'], "%Y-%m-%d")
+        date_range = formate_date_range(date_range)
+            
 
         aggregate = [
             {
                 "$unwind": "$work"
             },
-            { 
+            {
                 "$match": { "work.end_time": { "$ne": None } }
             }
         ]
 
+        if date_range.get("from") and date_range.get("to"):
+            aggregate.append(
+                {
+                    "$match": {
+                        "work.start_time": {
+                            "$gte": date_range["from"],
+                            "$lte": date_range["to"]
+                        }
+                    }
+                }
+            )
+
         if project_id is not None and project_id != 0:
             aggregate.append(
                 { "$match": { "work.project_id": project_id } }
-            )
-
-        # Add date range filter
-        if date_from and date_to:
-            aggregate.append(
-                { "$match": { "work.start_time": { "$gte": date_from, "$lte": date_to } } }
-            )
-        elif date_from:
-            aggregate.append(
-                { "$match": { "work.start_time": { "$gte": date_from } } }
-            )
-        elif date_to:
-            aggregate.append(
-                { "$match": { "work.start_time": { "$lte": date_to } } }
             )
 
         aggregate += [
@@ -142,39 +132,6 @@ async def issue_lifetime(request: dict, conn = Depends(get_connection)):
         return {"status": False, "data": [], "message": str(e)}
 
 
-
-@router.post("/issue_status", tags=["issue"])
-async def issue_status(request: dict, conn = Depends(get_connection)):
-    try:
-        project_id = request.get("project_id")
-        user_collection = conn["issues"]
-        aggregate = [
-            {
-                "$match": {
-                    "project_id": project_id
-                }
-            },
-            {
-                "$group": {
-                    "_id": "$state",
-                    "count": {
-                        "$sum": 1
-                    }
-                }
-            }
-        ]
-        result = user_collection.aggregate(aggregate)
-        
-        return {
-            "status": True,
-            "data": list(result),
-            "message": "Issues fetched successfully",
-        }
-    except Exception as e:
-        return {"status": False, "data": list([]), "message": str(e)}
-
-
-
 @router.post("/milestone_issues", tags=["issue"])
 async def milestone_issues(request: dict, conn = Depends(get_connection)):
     try:
@@ -182,8 +139,6 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
         project_id = request.get("project_id")
         all_milestones = request.get("all_milestones")
         user_collection = conn["issues"]
-        from datetime import datetime
-        current_time = datetime.utcnow()
 
         # Build the match criteria dynamically
         match_criteria = {}
@@ -198,6 +153,8 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
 
         if project_id and project_id != 0:
             match_criteria["project_id"] = project_id
+        
+        # total_time = now - created_at
 
         aggregate = [
             {
@@ -212,7 +169,7 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
                 "$addFields": {
                     "total_time": {
                         "$divide": [
-                            { "$subtract": [ current_time, "$created_at" ] },
+                            { "$subtract": [ "$$NOW", "$created_at" ] },
                             1000
                         ]
                     },
@@ -238,6 +195,7 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
             },
             {
                 "$project": {
+                    'id':1,
                     "title": 1,
                     "total_time": 1,
                     "assign_time": 1
@@ -308,8 +266,6 @@ def get_issues_info(request:dict, conn = Depends(get_connection)):
         return {'status':False, 'data':list([]), 'message':str(e)}
     
 
-
-
 @router.post("/get_user_total_duration_time", tags=['issue'])
 def get_user_total_duration_time(request: dict, conn=Depends(get_connection)):
     issue_id = request.get('issue_id')
@@ -353,12 +309,48 @@ def get_user_total_duration_time(request: dict, conn=Depends(get_connection)):
         'message': 'Successfully returned user with total_duration and time'
     }
 
- 
 
-@router.post("/export_issue_details", tags=['issue'])
-def export_issue_details(request: dict, conn=Depends(get_connection)):
+@router.post("/project_issues_report", tags=['issue'])
+def project_issues_report(request: dict, conn=Depends(get_connection)):
     project_id = request.get('project_id')
-    issue_id = request.get('issue_id')
+    issues_collection = conn['issues']
+    users_collection = conn['users']
 
-    user_collection = conn['users']
-    issue_collection = conn['issues']
+    aggregation = [
+    { '$match': { 'project_id': project_id }},
+    { '$lookup': {
+        'from': 'users',
+        'localField': 'assign.user_id',
+        'foreignField': 'id',
+        'as': 'assigned_users'
+    }},
+    { '$unwind': '$assign' },
+    { '$lookup': {
+        'from': 'users',
+        'localField': 'assign.user_id',
+        'foreignField': 'id',
+        'as': 'assign_user'
+    }},
+    { '$unwind': '$assign_user' },
+    { '$group': {
+        '_id': { 'issue_id': '$id', 'title': '$title' },
+        'total_assigned_time': { '$sum': '$assign.duration' },
+    }},
+    { '$project': {
+        '_id': 0,
+        'issue_id': '$_id.issue_id',
+        'title': '$_id.title',
+        'total_assigned_time': 1,
+        'total_work_time': 1,
+        'total_doing_time': 1,
+        'total_testing_time': 1,
+        'total_documentation_time': 1,
+        'assignee_names': 1
+    }}
+]
+
+
+    response = issues_collection.aggregate(aggregation)
+
+    result = list(response)
+    return result

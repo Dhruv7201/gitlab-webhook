@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
-from app.db import get_connection
-import requests
+from fastapi import APIRouter, Depends
+from motor.motor_asyncio import AsyncIOMotorClient
 import os
+from datetime import datetime
+import httpx
 
 router = APIRouter()
 
+async def get_connection() -> AsyncIOMotorClient:
+    # Replace with your MongoDB connection details
+    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    return client['GitlabReports']
+
 @router.get("/milestones")
-async def read_milestones(db=Depends(get_connection)):
+async def read_milestones(db=Depends(get_connection)) -> dict:
     gitlab_token = os.getenv("GITLAB_KEY")
     headers = {
         'PRIVATE-TOKEN': gitlab_token,
@@ -14,32 +20,40 @@ async def read_milestones(db=Depends(get_connection)):
     
     base_url = 'https://code.ethicsinfotech.in/api/v4/groups/39/milestones'
     milestone_collection = db["milestones"]
-    milestone_collection.delete_many({})
+
+    existing_milestones = await milestone_collection.find().to_list(None)
+    existing_ids = {milestone['id'] for milestone in existing_milestones}
+
+
+    
 
     all_milestones = []
-
     page = 1
-    while True:
-        response = requests.get(base_url, headers=headers, params={'page': page, 'per_page': 100})
-        if response.status_code != 200:
-            break
 
-        milestones = response.json()
-        if not milestones:
-            break
+    async with httpx.AsyncClient() as client:
+        while True:
+            response = await client.get(base_url, headers=headers, params={'page': page, 'per_page': 100})
 
-        for milestone in milestones:
-            milestone_collection.insert_one(milestone)
-        
-        all_milestones.extend(milestones)
-        page += 1
+            if response.status_code != 200:
+                return {"status": False, "message": f"Failed to fetch milestones: {response.status_code}"}
 
-    # remove _id from the response
+            milestones = response.json()
+            if not milestones:
+                break
+
+            new_milestones = [milestone for milestone in milestones if milestone['id'] not in existing_ids]
+            if new_milestones:
+                await milestone_collection.insert_many(new_milestones)
+                existing_ids.update(milestone['id'] for milestone in new_milestones)
+            
+            all_milestones.extend(milestones)
+            page += 1
+
+    # Remove _id from the response
     for milestone in all_milestones:
         milestone.pop('_id', None)
 
     return {"status": True, "data": all_milestones, "message": "Milestones fetched successfully"}
-
 
 @router.post("/milestones")
 async def get_milestones(request: dict, db=Depends(get_connection)):
@@ -62,8 +76,8 @@ async def get_milestones(request: dict, db=Depends(get_connection)):
             }
         }
     ]
-
-    results = list(milestone_collection.aggregate(aggregate))
+    
+    results = await milestone_collection.aggregate(aggregate).to_list(None)
     
     ongoing_milestones = []
     completed_milestones = []
@@ -101,7 +115,7 @@ async def get_milestones(request: dict, db=Depends(get_connection)):
                 }
             }
         ]
-        issues = list(issues_collection.aggregate(pipeline))
+        issues = await issues_collection.aggregate(pipeline).to_list(None)
         ongoing_milestone['issues'] = issues
 
 
@@ -118,14 +132,18 @@ async def get_milestones(request: dict, db=Depends(get_connection)):
 
 @router.post("/active_milestones")
 async def get_active_milestones(db=Depends(get_connection)):
-    # get all active milestones from the database
+    # Get all active milestones from the database
+    await read_milestones(db)
     milestone_collection = db["milestones"]
-    milestones = list(milestone_collection.find({"state": "active"}))
-    for milestone in milestones:
+    
+    # Fetch active milestones asynchronously
+    active_milestones = []
+    async for milestone in milestone_collection.find({"state": "active"}):
         milestone.pop('_id', None)
+        active_milestones.append(milestone)
+
     return {
         "status": True,
-        "data": milestones,
+        "data": active_milestones,
         "message": "Active milestones fetched successfully"
     }
-    

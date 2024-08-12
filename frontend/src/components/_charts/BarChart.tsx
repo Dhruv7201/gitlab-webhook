@@ -22,6 +22,7 @@ import {
   ChartTooltipContent,
 } from "@/components/_ui/chart";
 import { secondsToHMSorDays } from "@/utils/timeFormate";
+import { useNavigate } from "react-router-dom";
 
 const chartConfig = {
   desktop: {
@@ -33,20 +34,30 @@ const chartConfig = {
 
 type BarData = {
   name: string;
-  time_waste: number; // Assuming this is in seconds
+  user_id: number;
+  time_waste: number;
 };
 
 interface Props {
   selectedProjectId: number;
+  dateRange: any;
 }
 
-const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
+const Barchart: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const [barData, setBarData] = React.useState<BarData[]>([]);
+  const navigate = useNavigate();
+
+  const handleBarClick = (data: any) => {
+    if (data && data.user_id) {
+      navigate(`/user/${data.user_id}`);
+    }
+  };
 
   React.useEffect(() => {
     api
       .post(`/user_time_waste`, {
         project_id: selectedProjectId,
+        dateRange,
       })
       .then((response) => {
         const data = response.data;
@@ -70,7 +81,7 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
           Notification({ message: error.message, type: "error" });
         }
       });
-  }, [selectedProjectId]);
+  }, [selectedProjectId, dateRange]);
 
   const renderTooltipContent = (props: any) => {
     if (!props.active || !props.payload || props.payload.length === 0)
@@ -113,7 +124,13 @@ const Barchart: React.FC<Props> = ({ selectedProjectId }) => {
               tickFormatter={(value) => value.slice(0, 3)}
             />
             <Tooltip content={renderTooltipContent} />
-            <Bar dataKey="time_waste" fill="var(--color-desktop)" radius={8}>
+            <Bar
+              dataKey="time_waste"
+              fill="var(--color-desktop)"
+              radius={8}
+              onClick={(data) => handleBarClick(data)}
+              className="hover:cursor-pointer"
+            >
               <LabelList
                 position="top"
                 offset={12}

@@ -16,9 +16,10 @@ type ApiResponse = {
 
 interface Props {
   selectedProjectId: number;
+  dateRange: any;
 }
 
-const AssignTaskList: React.FC<Props> = ({ selectedProjectId }) => {
+const AssignTaskList: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const [workData, setWorkData] = useState<TaskData[]>([]);
 
   useEffect(() => {
@@ -39,7 +40,7 @@ const AssignTaskList: React.FC<Props> = ({ selectedProjectId }) => {
   }, [selectedProjectId]);
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="mx-auto p-4">
       <div style={{ height: 50 }}>
         <h1 className="text-2xl font-semibold leading-none tracking-tight">
           Assign tasks

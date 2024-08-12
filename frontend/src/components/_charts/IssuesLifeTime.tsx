@@ -50,8 +50,8 @@ type MilestoneData = {
 const getColor = (label: string) => {
   const colors = [
     "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
+    "#ed9121",
+    "#e6e6fa",
     "hsl(var(--chart-4))",
   ];
   if (label === "Development") return colors[2];
@@ -117,13 +117,12 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   }, []);
 
   React.useEffect(() => {
-    console.log("dateRange", dateRange);
     api
       .post(`/issue_lifetime`, {
         project_id: selectedProjectId,
         all_milestones: milestones.map((milestone) => milestone.id),
         milestone_id: selectedMilestone,
-        dateRange: dateRange,
+        date_range: dateRange,
       })
       .then((response) => {
         const data = response.data;
@@ -168,7 +167,6 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
 
   const handleBarClick = (data: any) => {
     let issueId = data.issueId;
-    console.log("issueId", issueId);
     if (issueId === undefined) {
       const issue = chartData.find((issue) => issue.title === data.issue);
       if (issue) {
@@ -182,10 +180,10 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Bar Chart - User Issue Durations</CardTitle>
+          <CardTitle>Issues Lifetime</CardTitle>
           <div className="flex items-center gap-4">
             <select
-              className="p-3 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring focus:ring-blue-500 focus:border-blue-500 transition duration-200 ease-in-out"
+              className="p-3 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring focus:ring-blue-500 focus:border-blue-500 transition duration-200 ease-in-out hover:cursor-pointer min-w-[215px]"
               onChange={(e) => setSelectedMilestone(Number(e.target.value))}
               value={selectedMilestone}
             >
@@ -216,9 +214,8 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
               left: 20,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid vertical={false} />
             <XAxis
-              className="hover:cursor-pointer"
               dataKey="issue"
               tickLine={false}
               axisLine={false}
@@ -228,17 +225,9 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
               tickFormatter={(value) =>
                 value.length > 20 ? value.slice(0, 20) + "..." : value
               }
-              onClick={handleBarClick}
             />
             <YAxis tickFormatter={(value) => secondsToHMSorDays(value)} />
-            <Tooltip
-              content={
-                <CustomTooltip
-                  chartConfig={chartConfig}
-                  onClick={handleBarClick}
-                />
-              }
-            />
+            <Tooltip content={<CustomTooltip chartConfig={chartConfig} />} />
             <Legend layout="horizontal" verticalAlign="top" align="center" />
             {Object.keys(chartConfig).map((key, index) => (
               <Bar

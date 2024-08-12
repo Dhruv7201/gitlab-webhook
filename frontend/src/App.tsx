@@ -7,6 +7,9 @@ import IssueDetails from "./pages/IssueDetails";
 import FilterPage from "./pages/Filterpage";
 import Milestones from "./pages/Milestones";
 import Layout from "./layout/Layout";
+import UsersPage from "./pages/UsersPage";
+import Users from "./pages/Users";
+
 function App() {
   return (
     <Routes>
@@ -51,6 +54,25 @@ function App() {
           </Layout>
         }
       />
+
+      <Route
+        path="/user/:userId"
+        element={
+          <Layout>
+            <UsersPage />
+          </Layout>
+        }
+      />
+
+      <Route
+        path="/users"
+        element={
+          <Layout>
+            <Users />
+          </Layout>
+        }
+      />
+
       <Route
         path="*"
         element={

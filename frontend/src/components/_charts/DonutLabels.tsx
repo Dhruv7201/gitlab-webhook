@@ -49,17 +49,22 @@ interface Props {
 const DonutLabels: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
 
-  const getColor = (data: ChartData[]) => {
-    const colors = ["#FF6633", "#2563eb", "#FF33FF", "#FFFF99", "#00B3E6"];
-    return data.map((entry, index) => ({
-      ...entry,
-      fill: colors[index % colors.length],
+  const getColor = (data: any[]) => {
+    const colorMap: { [key: string]: string } = {
+      Doing: "hsl(var(--chart-1))",
+      Documentation: "#e6e6fa",
+      Testing: "#ed9121",
+    };
+
+    return data.map((item) => ({
+      ...item,
+      fill: colorMap[item.label] || "#00B3E6",
     }));
   };
 
   React.useEffect(() => {
     api
-      .post(`/donut_labels/`, {
+      .post(`/donut_labels`, {
         project_id: selectedProjectId,
         date_range: dateRange,
       })
@@ -125,7 +130,7 @@ const DonutLabels: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
                 }}
               />
             </Pie>
-            {chartData.map((entry, _index) => (
+            {chartData.map((entry) => (
               <ChartLegend key={entry.label} color={entry.fill} />
             ))}
           </PieChart>

@@ -48,6 +48,11 @@ async def get_issues_by_filter(request: Dict, conn = Depends(get_connection)):
                 'as': 'creator'
             }},
             {'$unwind': '$creator'},
+              {
+    "$match": {
+      "work.end_time": None
+    }
+  },
             {'$project': {
                 '_id': 0,
                 'label':'$work.label',

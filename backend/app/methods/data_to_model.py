@@ -1,20 +1,39 @@
 from datetime import datetime
-from app.methods.data_entry import  update_work_of_user, insert_user, insert_project, insert_issues, insertReOpen, reOpenIncrement
+from app.methods.data_entry import  update_work_of_user, insert_user, insert_project, insert_issues, insertReOpen, reOpenIncrement, end_qa_assign
 from app.utils.date_utils import convert_to_ISC
+import requests
+import os
 
 labels_list = {'Doing':0, 'Testing':1, 'Documentation':2}
 reOpen = 'Re-Open'
 def employee(payload, db):
     user = payload['user']
-    
-    employee = {'id':user['id']  , 'username':user['username'], 'name':user['name'], 'email':user['name'], 'avatar_url':user['avatar_url'], 'assign_issues':[]
+    token = os.getenv('GITLAB_KEY')
+    headers = {
+        "Private-Token": token
+    }
+    user_email = requests.get(f"https://code.ethicsinfotech.in/api/v4/users/{user['id']}", headers=headers).json()['email']
+    if not user_email:
+        user_email = user['username']
+    employee = {'id':user['id']  , 'username':user['username'], 'name':user['name'], 'email':user_email, 'avatar_url':user['avatar_url'], 'assign_issues':[]
             }
     insert_user(employee, db)
     if 'assignees' in payload:
         assign = payload['assignees'][0]
-        assigned_employee = {'id':assign['id']  , 'username':assign['username'], 'name':assign['name'], 'email':assign['name'], 'avatar_url':assign['avatar_url'], 'assign_issues':[]
+        assigned_employee = {'id':assign['id']  , 'username':assign['username'], 'name':assign['name'], 'email':user_email, 'avatar_url':assign['avatar_url'], 'assign_issues':[]
             }
         insert_user(assigned_employee, db)
+        user_collection = db['users']
+        if user_collection.find_one({'id':employee['id']}):
+            new_assign = {
+                "issues_id": payload['object_attributes']['id'],
+                "project_id": payload['project']['id'],
+                "start_time": datetime.now(),
+                "end_time": None,
+                "duration": None,
+            }
+            user_collection.update_one({'id':employee['id']}, {'$push': {'assign_issues': new_assign}})
+
 
 def insert_work_in_user(payload, db):
     
@@ -50,6 +69,11 @@ def insert_work_in_user(payload, db):
                 'duration': None
             })
     user_id = payload['user']['username']
+    print(curr_labels)
+    print(previous_labels)
+    if 'Ready for release' in [label['title'] for label in curr_labels] and 'Ready for release' not in [label['title'] for label in previous_labels]:
+        end_qa_assign(payload, db)
+
     update_work_of_user(curr_work, user_id, db)
 
 

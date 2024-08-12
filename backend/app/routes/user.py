@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from app.db import get_connection
 from typing import Dict, Any
-from app.utils.date_utils import format_duration
+from app.utils.date_utils import format_duration, formate_date_range
+import requests
+import os
 
 router = APIRouter()
 
@@ -23,24 +25,88 @@ async def read_user(db=Depends(get_connection)):
     except Exception as e:
         return { "status": False, "data": list([]), "message": str(e) }
     
+
+@router.post("/all_users")
+async def read_all_user(db=Depends(get_connection)):
+    try :
+        user_collection = db["users"]
+        # get all the users
+        users = user_collection.find({})
+        user_response = []
+        for user in users:
+            if 'assign_issues' not in user:
+                user['assign_issues'] = []
+            total_assign = len(user['assign_issues'])
+            if 'work' not in user:
+                user['work'] = []
+            total_work = len(user['work'])
+            user_response.append({
+                'id': user['id'],
+                'name': user['name'],
+                'avatar_url': user['avatar_url'],
+                'username': user['username'],
+                'email': user['email'],
+                'total_assign': total_assign,
+                'total_work': total_work
+            })
+
+        
+        
+        return {"status": True, "data": user_response, "message":"Fetch User successfully"}
+    except Exception as e:
+        return { "status": False, "data": list([]), "message": str(e) }
+    
+
+
+def get_gitlab_subgroup(project_id: int) -> str:
+    # Replace with your GitLab instance URL and API token
+    gitlab_url = "https://code.ethicsinfotech.in/api/v4"
+    api_token = os.getenv("GITLAB_KEY")
+
+    response = requests.get(
+        f"{gitlab_url}/projects/{project_id}",
+        headers={"PRIVATE-TOKEN": api_token}
+    )
+    response.raise_for_status()  # Raise an error if the request failed
+
+    project_data = response.json()
+    # Extract subgroup name from project data
+    if 'namespace' in project_data:
+        return project_data['namespace']['name']
+    return "Unknown"
     
 
 @router.post("/projects")
 async def read_user(db=Depends(get_connection)):
-    try : 
-        user_collection = db["projects"]
-        projects = user_collection.find({}, {"name": 1, "id":1, '_id':1})
+    try:
+        projects_collection = db["projects"]
+        projects = projects_collection.find({}, {"name": 1, "id": 1, "subgroup_name": 1})
         user_response = []
         
         for project in projects:
-            user_response.append({
-                'id': str(project['id']),
-                'name': project['name']
-            })
+            if 'subgroup_name' not in project:
+                subgroup_name = get_gitlab_subgroup(project['id'])
+                projects_collection.update_one(
+                    {"_id": project['_id']},
+                    {"$set": {"subgroup_name": subgroup_name}}
+                )
+                full_project_name = f"{subgroup_name}/{project['name']}"
+                user_response.append({
+                    'id': str(project['id']),
+                    'name': full_project_name
+                })
+            else:
+                full_project_name = f"{project['subgroup_name']}/{project['name']}"
+                user_response.append({
+                    'id': str(project['id']),
+                    'name': full_project_name
+                })
 
-        return {"status": True, "data": user_response, 'message':'Fetch Project Successfully'}
+        return {"status": True, "data": user_response, 'message': 'Fetch Project Successfully'}
+    
     except Exception as e:
-        return {"status":False, 'data' :list([]), 'message':e }
+        return {"status": False, 'data': [], 'message': str(e)}
+
 
 @router.post("/work")
 async def read_work(request:dict, db=Depends(get_connection)) -> Dict[str, Any]:
@@ -113,64 +179,7 @@ async def read_work(request:dict, db=Depends(get_connection)) -> Dict[str, Any]:
         return { "status": False, "data": list([]), "message": str(e) }
 
 
-
-@router.post("/get-labels")
-async def get_labels(db=Depends(get_connection)):
-    try:
-        user_collection = db["users"]
-        users = user_collection.find()
-        
-        labels = set()
-
-        for user in users:
-            work_entries = user.get('work', [])
-
-            for work in work_entries:
-                labels.add(work.get('label', 'Unknown'))
-    
-        return { 'status':True, 'data':list(labels), "message": "Work fetched successfully"}
-    
-    except Exception as e:
-        return { "status": False, "data": list([]), "message": str(e) }
-
-@router.post("/worktime", response_model=list)
-async def get_work_time(request:dict, db=Depends(get_connection)):
-    try:
-       
-        label = request.get("label")
-        user_collection = db["users"]
-        users = user_collection.find()
-        
-        user_work_times = []
-
-        for user in users:
-            total_duration = 0.0
-            username = user.get('username', 'Unknown')
-            work_entries = user.get('work', [])
-
-            for work in work_entries:
-                if work.get('label') == label:
-                    total_duration += work.get('duration', 0.0)
-            
-            user_work_times.append({
-                'username': username,
-                'total_duration': total_duration
-            })
-        
-        user_work_times = [uwt for uwt in user_work_times if uwt['total_duration'] > 0]
-
-        for uwt in user_work_times:
-            uwt['total_duration'] = format_duration(uwt['total_duration'])
-
-        return { 'status':True, 'data':user_work_times, "message": "Work fetched successfully"}
-    
-    except Exception as e:
-        return { "status": False, "data": list([]), "message": str(e) }
-
-
-
-
-@router.post("/donut_labels/")
+@router.post("/donut_labels")
 async def get_donut_labels(request:dict, conn = Depends(get_connection)):
     try:
         
@@ -192,7 +201,7 @@ async def get_donut_labels(request:dict, conn = Depends(get_connection)):
         pipeline.extend([
             {
                 "$match": {
-                    "work.end_time": {"$ne": None}
+                    "work.end_time": {"$eq": None}
                 }
             },
             {
@@ -230,66 +239,105 @@ async def get_donut_labels(request:dict, conn = Depends(get_connection)):
 
 
 @router.post("/user_activity_chart")
-async def get_user_activity_chart(request:dict, conn = Depends(get_connection)):
+async def get_user_activity_chart(request: dict, conn = Depends(get_connection)):
     try:
-        
         project_id = request.get("project_id")
+        date_range = request.get("dateRange")
+        date_range = formate_date_range(date_range)
+        start_date = date_range["from"]
+        end_date = date_range["to"]
         user_collection = conn["users"]
         
-        completed_pipeline =[{"$unwind": "$work"},
-            {"$match": {"work.end_time": {"$ne":None}}},
+        completed_pipeline = [
+            {"$unwind": "$work"},
+            {"$match": {
+                "work.end_time": {"$ne": None},
+                "work.end_time": {"$gte": start_date, "$lte": end_date}
+            }},
             {"$lookup": {
                 "from": "projects",
                 "localField": "work.issue_id",
                 "foreignField": "id",
                 "as": "project_info"
+            }},
+            {"$match": {"work.project_id": project_id if project_id != 0 else {"$exists": True}}},
+            {"$group": {
+                "_id": "$username", 
+                'user_id': {"$first": "$id"}, 
+                "completed_count": {"$sum": 1}
             }}
-            ]
-        if project_id != 0:
-            completed_pipeline.append({"$match": {"work.project_id": project_id}})
-        completed_pipeline.append(
-            {"$group": {"_id": "$username", "completed_count": {"$sum": 1}}},
-        )
+        ]
         
-        assigned_pipeline =[
+        assigned_pipeline = [
             {"$unwind": "$assign_issues"},
+            {"$match": {
+                "assign_issues.end_time": {"$ne": None},
+                "assign_issues.end_time": {"$gte": start_date, "$lte": end_date}
+            }},
             {"$lookup": {
                 "from": "projects",
-                "localField": "assign_issues.issue_id",
+                "localField": "assign_issues.issues_id",
                 "foreignField": "id",
                 "as": "project_info"
-            }}]
-        if project_id != 0:
-            assigned_pipeline.append(
-            {"$match": {"assign_issues.project_id": project_id}}
-            )
-        assigned_pipeline += [
-        {"$group": {"_id": "$username", "assigned_count": {"$sum": 1}}},
-        {"$sort": {"assigned_count": -1}}
+            }},
+            {"$match": {"assign_issues.project_id": project_id if project_id != 0 else {"$exists": True}}},
+            {"$group": {
+                "_id": "$username", 
+                'user_id': {"$first": "$id"}, 
+                "assigned_count": {"$sum": 1}
+            }},
+            {"$sort": {"assigned_count": -1}}
         ]
         
         completed_result = list(user_collection.aggregate(completed_pipeline))
-        
         assigned_result = list(user_collection.aggregate(assigned_pipeline))
-        
-        labels = list(set([entry["_id"] for entry in completed_result + assigned_result]))
-        completed_data = {entry["_id"]: entry["completed_count"] for entry in completed_result}
-        assigned_data = {entry["_id"]: entry["assigned_count"] for entry in assigned_result}
-        
-        completed_issues = [completed_data.get(label, 0) for label in labels]
-        assigned_issues = [assigned_data.get(label, 0) for label in labels]
-        
-        label = {"labels": labels, "completed_issues": completed_issues, "assigned_issues": assigned_issues}
-        return { 'status':True, 'data':label, "message": "Work fetched successfully"}
+        all_results = completed_result + assigned_result
+
+        labels = list(set(entry["_id"] for entry in all_results))
+        user_map = {}
+        for entry in all_results:
+            user_id = entry["user_id"]
+            label = entry["_id"]
+            
+            if label not in user_map:
+                user_map[label] = {
+                    'id': user_id,
+                    'completed_count': 0,
+                    'assigned_count': 0
+                }
+
+        for entry in completed_result:
+            label = entry["_id"]
+            if label in user_map:
+                user_map[label]['completed_count'] = entry['completed_count']
+
+        for entry in assigned_result:
+            label = entry["_id"]
+            if label in user_map:
+                user_map[label]['assigned_count'] = entry['assigned_count']
+
+        completed_issues = [user_map[user]['completed_count'] for user in user_map]
+        assigned_issues = [user_map[user]['assigned_count'] for user in user_map]
+        user_id = [user_map[user]['id'] for user in user_map]
+        labels = list(user_map.keys())
+
+        label = {"labels": labels, "completed_issues": completed_issues, "assigned_issues": assigned_issues, 'user_id': user_id}
+
+        return {'status': True, 'data': label, "message": "Work fetched successfully"}
     
     except Exception as e:
-        return { "status": False, "data": list([]), "message": str(e) }
+        return {"status": False, "data": list([]), "message": str(e)}
+
 
 
 @router.post("/user_time_waste")
-async def get_user_activity_chart(request: dict, conn = Depends(get_connection)):
+async def get_user_time_waste(request: dict, conn = Depends(get_connection)):
     try:
         project_id = request.get("project_id")
+        date_range = request.get("dateRange")
+        date_range = formate_date_range(date_range)
+        start_date = date_range["from"]
+        end_date = date_range["to"]
         user_collection = conn["users"]
 
         # Define the pipeline
@@ -324,8 +372,19 @@ async def get_user_activity_chart(request: dict, conn = Depends(get_connection))
                 }
             },
             {
+                '$match': {
+                    '$and': [
+                        { 'assign_issues.start_time': { '$gte': start_date } },
+                        { 'assign_issues.end_time': { '$lte': end_date } },
+                        { 'work.start_time': { '$gte': start_date } },
+                        { 'work.end_time': { '$lte': end_date } }
+                    ]
+                }
+            },
+            {
                 '$project': {
                     'name': 1,
+                    'id': '$id',
                     'time_waste': {
                         '$subtract': ['$work.start_time', '$assign_issues.start_time']
                     }
@@ -334,19 +393,21 @@ async def get_user_activity_chart(request: dict, conn = Depends(get_connection))
             {
                 '$group': {
                     '_id': '$name',
+                    'id': {'$first': '$id'},
                     'total_time_waste': { '$sum': '$time_waste' }
                 }
             },
             {
                 '$project': {
                     'username': '$_id',
+                    'user_id': '$id',
                     'total_time_waste': {
                         '$divide': ['$total_time_waste', 1000]
                     }
                 }
             }
         ]
-
+        
         if project_id != 0:
             pipeline.insert(0, {
                 '$match': {
@@ -359,9 +420,204 @@ async def get_user_activity_chart(request: dict, conn = Depends(get_connection))
 
         results = list(user_collection.aggregate(pipeline))
 
-        response = [{'name': res['username'], 'time_waste': res['total_time_waste']} for res in results]
-
+        response = [{'name': res['username'], 'user_id': res['user_id'], 'time_waste': res['total_time_waste']} for res in results]
         return {'status': True, 'data': response, 'message': "Work fetched successfully"}
 
+    except Exception as e:
+        return {'status': False, 'data': [], 'message': str(e)}
+
+
+
+@router.post('/get_all_issues_duration')
+def get_all_issues_duration(request: dict, conn=Depends(get_connection)):
+    try:
+        user_id = request.get('user_id')
+
+        user_connection = conn['users']
+        pipeline = [
+            {'$match': {'id': user_id}},
+            {'$unwind': '$work'},
+            {
+                '$addFields': {
+                    'timeToReturn': {
+                        '$cond': {
+                            'if': {'$eq': ['$work.end_time', None]},
+                            'then': {'$divide': [{'$subtract': ['$$NOW', '$work.start_time']}, 1000]},
+                            'else': '$work.duration'
+                        }
+                    }
+                }
+            },
+            {
+                '$group': {
+                    '_id': '$work.issue_id',
+                    'total_time': {
+                        '$sum': '$timeToReturn'
+                    }
+                }
+            },
+            {
+                '$lookup': {
+                    'from': 'issues',
+                    'localField': '_id',
+                    'foreignField': 'id',
+                    'as': 'result'
+                }
+            },
+            {
+                '$unwind': '$result'
+            },
+            {
+                '$project': {
+                    '_id': 0,
+                    'issue_id': '$_id',
+                    "url": "$result.url",
+                    'issue_name': '$result.title',
+                    'duration': '$total_time'
+                }
+            }
+        ]
+        result = list(user_connection.aggregate(pipeline))
+        total_time = sum(res['duration'] for res in result)
+        data = [
+            {
+                'issue_id': res['issue_id'],
+                'url': res['url'],
+                'issue_name': res['issue_name'],
+                'duration': res['duration'],
+                'percentage': (res['duration'] * 100) / total_time if total_time > 0 else 0
+            } for res in result
+        ]
+        return {'status': True, 'data': data, 'message': "Data retrieved successfully"}
+        
+    except Exception as e:
+        return {"status": False, "data": [], "message": str(e)}
+
+@router.post("/get_work_duration_time")
+def get_work_duration_time(request:dict, conn=Depends(get_connection)):
+    try:
+        user_connection = conn['users']
+        user_id = request.get('userId')
+        pipeline = [
+            {'$match': {'id': user_id}},
+            {
+            '$unwind':'$work'
+            },
+            {
+                '$addFields': {
+                            'timeToReturn': {
+                                '$cond': {
+                                    'if': { '$eq': ['$work.end_time', None] },
+                                    'then': { '$divide': [{ '$subtract': [ '$$NOW', '$work.start_time' ]}, 1000] },
+                                    'else': '$work.duration'
+                                }
+                            }
+                        }
+            },
+            {
+                '$lookup': {
+                'from': 'issues',
+                'localField': 'work.issue_id',
+                'foreignField': 'id',
+                'as': 'result'
+                }
+            },
+            {
+                '$unwind':'$result'
+            },
+            {
+            '$sort':{
+                'work.start_time':1
+            }
+            },
+            {
+            '$project':{
+                '_id':0,
+                'duration':'$timeToReturn',
+                'issue_name':'$result.title',
+                'issue_url':'$result.url',
+                'start_time':'$work.start_time',
+                
+            }
+            }
+            
+            ]
+        result = list(user_connection.aggregate(pipeline))
+        total_time = sum(res['duration'] for res in result)
+        data = [{'duration':res['duration'], 'issue_name':res['issue_name'],'issue_url':res['issue_url'], 'start_time':res['start_time'], 'percentage': (res['duration'] * 100) / total_time if total_time > 0 else 0}for res in result]
+        
+        return {'status':True, 'data':data, 'message':'Work and duration for user got Successfully'}
+
+    except Exception as e:
+        return {'status':False, 'data':list([]), 'message':'Error in getting Work and duration for user'}
+    
+
+import requests
+import os
+
+@router.post("/get_user_all_info")
+def get_user_all_info(request: dict, conn=Depends(get_connection)):
+    try:
+        id = request.get('id')
+        user_connection = conn['users']
+        pipeline = [
+            {'$match': {'id': id}},
+            {'$addFields': {
+                'completed_work': {
+                    '$filter': {
+                        'input': '$work',
+                        'as': 'w',
+                        'cond': {'$ne': ['$$w.end_time', None]}
+                    }
+                }
+            }},
+            {'$addFields': {
+                'completed_issues': {
+                    '$filter': {
+                        'input': '$assign_issues',
+                        'as': 'w',
+                        'cond': {'$ne': ['$$w.end_time', None]}
+                    }
+                }
+            }},
+            {'$project': {
+                '_id': 0,
+                'avatar_url': '$avatar_url',
+                'name': '$name',
+                'username': '$username',
+                'email': '$email',
+                'all_work': {'$size': {'$ifNull': ['$completed_work', []]}},
+                'all_assign': {'$size': {'$ifNull': ['$completed_issues', []]}}
+            }},
+        ]
+
+        result = list(user_connection.aggregate(pipeline))
+        if not result:
+            return {'status': False, 'data': [], 'message': 'User not found'}
+
+        result = dict(result[0])
+
+        token = os.getenv('GITLAB_KEY')
+        headers = {'PRIVATE-TOKEN': token}
+        print(result)
+        response = requests.get(f'https://code.ethicsinfotech.in/api/v4/users?username={result["username"]}', headers=headers)
+        
+        if response.status_code != 200:
+            return {'status': False, 'data': [], 'message': f'Error fetching GitLab user info: {response.status_code}'}
+
+        try:
+            response_data = response.json()
+            if not response_data:
+                return {'status': False, 'data': [], 'message': 'No data returned from GitLab API'}
+            
+            email = response_data[0].get('email', 'Email not found')
+            web_url = response_data[0].get('web_url', 'Web URL not found')
+            result['email'] = email
+            result['web_url'] = web_url
+
+        except ValueError:
+            return {'status': False, 'data': [], 'message': 'Invalid JSON response from GitLab API'}
+
+        return {'status': True, 'data': result, 'message': 'Work and duration for user got Successfully'}
     except Exception as e:
         return {'status': False, 'data': [], 'message': str(e)}

@@ -24,7 +24,7 @@ const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
   const [value, setValue] = React.useState("");
   const [availableProject, setAvailableProject] = React.useState(false);
   const [selectedProjectName, setSelectedProjectName] =
-    React.useState("Select Project");
+    React.useState("View All Projects");
 
   const [projects, setProjects] = React.useState<Project[]>([]);
 
@@ -57,7 +57,7 @@ const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
         <Button
           variant="outline"
           role="combobox"
-          className="w-[200px] justify-between"
+          className="justify-between"
           aria-expanded="true"
           data-state="opened"
         >
@@ -95,15 +95,14 @@ const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
                     onClick={() => {
                       onSearchButtonClick(project);
                     }}
-                    className="cursor-pointer p-2 hover:bg-gray-100 rounded"
+                    className={`cursor-pointer p-2 hover:bg-gray-100 rounded ${
+                      project.name === selectedProjectName ? "bg-gray-100" : ""
+                    }`}
                   >
                     {project.name}
                   </h1>
-                  // add default value as view all projects
-                  
-
                 ))}
-                {projects.length > 0 && (
+              {projects.length > 0 && (
                 <h1
                   onClick={() => {
                     setSelectedProjectId(0);

@@ -18,28 +18,24 @@ const Milestones = () => {
     to: new Date(),
   });
 
-  function handleClick(filter_name: string): any {
-    setSelectedOption(filter_name);
-  }
-
   const time = "2 Hours";
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="container mx-auto p-4 flex gap-4">
+    <div className="flex flex-col">
+      <div className="p-4 flex flex-col md:flex-row gap-4">
         <EditableDropdown setSelectedProjectId={setSelectedProjectId} />
         <DatePickerWithRange date={date} setDate={setDate} />
       </div>
 
-      <div className="bg-white border-b border-gray-200 dark:bg-gray-900">
-        <div className="container mx-auto p-4">
-          <ul className="flex gap-4">
+      <div className="p-4">
+        <div className="p-4">
+          <ul className="flex gap-4 font-medium">
             <li onClick={() => setSelectedOption("ongoing_milestones")}>
               <div
                 className={`px-4 py-2 rounded-full cursor-pointer ${
                   selectedOption === "ongoing_milestones"
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-200 text-gray-700"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800"
                 }`}
               >
                 <span className="font-semibold">On-Going</span>
@@ -50,8 +46,8 @@ const Milestones = () => {
               <div
                 className={`px-4 py-2 rounded-full cursor-pointer ${
                   selectedOption === "completed_milestones"
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-200 text-gray-700"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800"
                 }`}
               >
                 <span className="font-semibold">Closed</span>
@@ -61,8 +57,8 @@ const Milestones = () => {
               <div
                 className={`px-4 py-2 rounded-full cursor-pointer ${
                   selectedOption === "all_milestones"
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-200 text-gray-700"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800"
                 }`}
               >
                 <span className="font-semibold">All</span>
@@ -72,7 +68,7 @@ const Milestones = () => {
         </div>
       </div>
 
-      <div className="container mx-auto p-4 flex-1">
+      <div className="p-4 flex-1">
         <MileStoneTable
           selectedProjectId={selectedProjectId}
           selectedOption={selectedOption}

@@ -1,5 +1,6 @@
 import * as React from "react";
 import api from "@/utils/api";
+import { useNavigate } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -38,15 +39,24 @@ const chartConfig = {
 
 interface Props {
   selectedProjectId: number;
+  dateRange: any;
 }
 
 type ChartData = {
   _id: string;
   work_done_count: number;
+  user_id: number;
 };
 
 const CustomChart: React.FC<Props> = ({ selectedProjectId }) => {
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
+  const navigate = useNavigate();
+
+  const handleBarClick = (data: any) => {
+    if (data && data.user_id) {
+      navigate(`/user/${data.user_id}`);
+    }
+  };
 
   React.useEffect(() => {
     api
@@ -96,9 +106,11 @@ const CustomChart: React.FC<Props> = ({ selectedProjectId }) => {
               content={<ChartTooltipContent indicator="line" />}
             />
             <Bar
+              className="hover:cursor-pointer"
               dataKey="work_done_count"
               layout="vertical"
               fill="var(--color-desktop)"
+              onClick={(data) => handleBarClick(data)}
               radius={4}
             >
               <LabelList

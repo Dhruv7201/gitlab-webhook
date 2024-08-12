@@ -30,6 +30,7 @@ type Milestone = {
 };
 
 type MilestoneData = {
+  id: number;
   title: string;
   total_time: number;
   assign_time: number;
@@ -54,7 +55,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function MultiBarChart({ project_id }: { project_id: number }) {
+export function MultiBarChart({ project_id, dateRange }: any) {
   const [milestones, setMilestones] = React.useState<Milestone[]>([]);
   const [chartData, setChartData] = React.useState<MilestoneData[]>([]);
   const [selectedMilestone, setSelectedMilestone] = React.useState<number>(0);
@@ -146,11 +147,13 @@ export function MultiBarChart({ project_id }: { project_id: number }) {
             <YAxis tickFormatter={secondsToHMSorDays} />
             <Tooltip content={<CustomTooltip />} />
             <Bar
+              className="hover:cursor-pointer"
               dataKey="total_time"
               fill={chartConfig.total_time.color}
               radius={4}
             />
             <Bar
+              className="hover:cursor-pointer"
               dataKey="assign_time"
               fill={chartConfig.assign_time.color}
               radius={4}

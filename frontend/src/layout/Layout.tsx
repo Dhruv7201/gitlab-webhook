@@ -1,4 +1,4 @@
-import { ArrowDown, LayoutDashboard, Milestone } from "lucide-react";
+import { ArrowDown, LayoutDashboard, Milestone, Menu } from "lucide-react";
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 
@@ -8,6 +8,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="flex h-screen">
+      <button
+        className="fixed top-4 left-4 md:hidden z-40 text-gray-600"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label="Open Sidebar"
+      >
+        <Menu size={24} />
+      </button>
       <aside
         className={`fixed top-0 left-0 h-full bg-blue-600 text-gray-200 transition-transform transform ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -15,7 +22,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         aria-label="Sidebar"
       >
         <div className="p-4">
-          <h1 className="text-3xl font-bold mb-6">
+          <h1
+            className={`text-3xl font-bold mb-6 ${sidebarOpen ? "mt-4" : ""}`}
+          >
             <NavLink to="/dashboard" className="text-white hover:text-gray-300">
               Git Analytics
             </NavLink>
@@ -56,14 +65,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   >
                     <span>More</span>
                     <ArrowDown
-                      className={`ml-auto transition-transform absolute right-4 ${
+                      className={`ml-auto transition-transform ${
                         dropdownOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
 
                   <div
-                    className={`absolute  mt-2 bg-gray-800 text-white w-full rounded-md shadow-lg transition-transform duration-300 ease-in-out ${
+                    className={`absolute mt-2 bg-gray-800 text-white w-full rounded-md shadow-lg transition-transform duration-300 ease-in-out ${
                       dropdownOpen
                         ? "max-h-screen opacity-100 scale-100"
                         : "max-h-0 opacity-0 scale-95"
@@ -71,20 +80,28 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   >
                     <ul className="space-y-1">
                       <li>
-                        <Link
-                          to="/settings"
-                          className="block py-3 px-4 hover:bg-gray-600"
+                        <NavLink
+                          to="/filters"
+                          className={({ isActive }) =>
+                            `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
+                              isActive ? "bg-gray-400" : "hover:bg-gray-700"
+                            }`
+                          }
                         >
-                          Settings
-                        </Link>
+                          Filters
+                        </NavLink>
                       </li>
                       <li>
-                        <Link
-                          to="/profile"
-                          className="block py-3 px-4 hover:bg-gray-600"
+                        <NavLink
+                          to="/users"
+                          className={({ isActive }) =>
+                            `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
+                              isActive ? "bg-gray-400" : "hover:bg-gray-700"
+                            }`
+                          }
                         >
-                          Profile
-                        </Link>
+                          Users
+                        </NavLink>
                       </li>
                     </ul>
                   </div>
@@ -94,7 +111,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </nav>
         </div>
       </aside>
-      <main className="flex-1 ml-0 md:ml-64">{children}</main>
+      <main className="flex-1 ml-0 md:ml-64">
+        <div className="p-4">{children}</div>
+      </main>
     </div>
   );
 };

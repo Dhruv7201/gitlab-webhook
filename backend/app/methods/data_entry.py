@@ -1,5 +1,7 @@
 from app.models  import  project_model
 from datetime import datetime
+import requests
+import os
 
 def insert_logs(data, db):
     logs_collection = db['logs']
@@ -71,7 +73,6 @@ def insert_issues(payload, issue, changes,  db):
     curr_issue = issue_collection.find_one(filter)
     if not curr_issue:
         issue_collection.insert_one(issue)
-
         if  'assignees' in payload and payload['assignees'] != []:
             id = payload['object_attributes']['id']
             current_assign = payload['assignees']
@@ -96,13 +97,28 @@ def insert_issues(payload, issue, changes,  db):
                     update = {'$set':{key: changes[key]['current']}}
                     issue_collection.update_one(filter, update)
                  
-def push_milestone(issue_id, curr_milestone_id, updated_at ,db):
+def push_milestone(issue_id, curr_milestone_id, prev_milestone_id, updated_at ,db):
     
     issue_collection = db['issues']
     filter = {'id':issue_id}
-    curr_milestone_info = {'milestone_id':curr_milestone_id, 'updated_at':updated_at, 'title':None}
-    update = {"$push": {'milestone':curr_milestone_info}}
-    issue_collection.update_one(filter, update)
+    curr_issue = issue_collection.find_one(filter)
+    new_milestone = {'milestone_id':curr_milestone_id, 'updated_at':updated_at, 'title':None, 'start_time':datetime.now()}
+    if 'milestone' in curr_issue and prev_milestone_id != None:
+        curr_milestone_info = curr_issue['milestone']
+        
+        for index in range(len(curr_milestone_info)-1, -1, -1):
+            if curr_milestone_info[index]['milestone_id'] == prev_milestone_id and 'end_time' not in curr_milestone_info[index]:
+                curr_milestone_info[index]['end_time'] = datetime.now()
+                curr_milestone_info[index]['duration'] = (datetime.now() - curr_milestone_info[index]['start_time']).total_seconds()
+                break
+        if curr_milestone_id != None:
+            curr_milestone_info.append(new_milestone)
+        update = {"$set": {'milestone':curr_milestone_info}}
+        issue_collection.update_one(filter, update)
+    else:
+        update = {"$push": {'milestone':new_milestone}} 
+        issue_collection.update_one(filter, update)
+
 
 def push_assign(id, previous_assign, current_assign, project_id, db):
     issue_collection = db['issues']
@@ -140,7 +156,14 @@ def push_assign_to_user(issue_id,  prev_assign, curr_assign, project_id, db):
         filter = {'username':curr_assign[0]['username']}
         if not user_collection.find_one(filter):
             user = curr_assign[0]
-            employee = {'id':user['id'],  'username':user['username'], 'name':user['name'], 'email':user['username'], 'avatar_url':user['avatar_url'], 'assign_issues':[added_issue]}
+            token = os.getenv('GITLAB_KEY')
+            headers = {
+                "Private-Token": token
+            }
+            user_email = requests.get(f"https://code.ethicsinfotech.in/api/v4/users/{user['id']}", headers=headers).json()['email']
+            if not user_email:
+                user_email = user['username']
+            employee = {'id':user['id'],  'username':user['username'], 'name':user['name'], 'email':user_email, 'avatar_url':user['avatar_url'], 'assign_issues':[added_issue]}
             insert_user(employee, db)
         else:
             update = {'$push':{'assign_issues':added_issue}}
@@ -150,8 +173,15 @@ def push_assign_to_user(issue_id,  prev_assign, curr_assign, project_id, db):
         filter = {'username':prev_assign[0]['username']}
         if not user_collection.find_one(filter):
             user = curr_assign[0]
+            token = os.getenv('GITLAB_KEY')
+            headers = {
+                "Private-Token": token
+            }
+            user_email = requests.get(f"https://code.ethicsinfotech.in/api/v4/users/{user['id']}", headers=headers).json()['email']
+            if not user_email:
+                user_email = user['username']
             employee = {'id':user['id']  , 'username':user['username'], 'name':user['name'],
-                        'email':user['username'], 'avatar_url':user['avatar_url'], 'assign_issues':[]}
+                        'email':user_email, 'avatar_url':user['avatar_url'], 'assign_issues':[]}
             insert_user(employee, db)
         else:
             assign_issue_arr = user_collection.find_one(filter)['assign_issues']
@@ -187,8 +217,40 @@ def push_new_assign_to_user(issue_id, current_assign, project_id, db):
         filter = {'username':current_assign[0]['username']}
         if not user_collection.find_one(filter):
             user = current_assign[0]
-            employee = {'id':user['id'],  'username':user['username'], 'name':user['name'], 'email':user['username'], 'avatar_url':user['avatar_url'], 'assign_issues':[added_issue]}
+            token = os.getenv('GITLAB_KEY')
+            headers = {
+                "Private-Token": token
+            }
+            user_email = requests.get(f"https://code.ethicsinfotech.in/api/v4/users/{user['id']}", headers=headers).json()['email']
+            if not user_email:
+                user_email = user['username']
+            employee = {'id':user['id'],  'username':user['username'], 'name':user['name'], 'email':user_email, 'avatar_url':user['avatar_url'], 'assign_issues':[added_issue]}
             insert_user(employee, db)
         else:
             update = {'$push':{'assign_issues':added_issue}}
             user_collection.update_one(filter, update)
+
+
+def end_qa_assign(payload, db):
+    issue_collection = db['issues']
+    filter = {'id':payload['object_attributes']['id']}
+    issue = issue_collection.find_one(filter)
+    curr_time = datetime.now()
+    assign_arr = issue['assign']
+    for index in range(len(assign_arr)-1, -1, -1):
+        if assign_arr[index]['end_time'] == None:
+            assign_arr[index]['end_time'] = curr_time
+            assign_arr[index]['duration'] = (curr_time - assign_arr[index]['start_time']).total_seconds()
+            break
+    update = {'$set':{'assign':assign_arr}}
+    issue_collection.update_one(filter, update)
+    user_collection = db['users']
+    user = user_collection.find_one({'id':payload['user']['id']})
+    assign_issue_arr = user['assign_issues']
+    for index in range(len(assign_issue_arr)-1, -1, -1):
+        if assign_issue_arr[index]['issue_id'] == payload['object_attributes']['id'] and assign_issue_arr[index]['end_time'] == None:
+            assign_issue_arr[index]['end_time'] = curr_time
+            assign_issue_arr[index]['duration'] = (curr_time - assign_issue_arr[index]['start_time']).total_seconds()
+            break
+    update = {'$set':{'assign_issues':assign_issue_arr}}
+    user_collection.update_one({'id':payload['user']['id']}, update)

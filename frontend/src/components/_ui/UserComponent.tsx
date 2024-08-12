@@ -46,31 +46,40 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 type ChartData = {
-  _id: string;
-  total_time: number;
-  total_duration: number;
+  issue_name: string;
+  url: string;
+  issue_id: number;
+  duration: number;
   percentage: number;
   fill: string;
 };
 
 interface Props {
-  selectedIssueId: number;
+  selectedUserId: number;
 }
 
-const IssueComponent: React.FC<Props> = ({ selectedIssueId }) => {
+const UserComponent: React.FC<Props> = ({ selectedUserId }) => {
+  function getRandomColor(): string {
+    const letters = "0123456789ABCDEF";
+    let color = "#";
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
   const getColor = (data: ChartData[]) => {
-    const colors = ["#FF6633", "#2563eb", "#FF33FF", "#FFFF99", "#00B3E6"];
+    const colors = ["#FF6633", "#2563eb", "#FF33FF", "#3ee66d", "#00B3E6"];
     return data.map((entry, index) => ({
       ...entry,
-      fill: colors[index % colors.length],
+      fill: index < colors.length ? colors[index] : getRandomColor(),
     }));
   };
 
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
   React.useEffect(() => {
     api
-      .post(`/get_user_total_duration_time`, {
-        issue_id: selectedIssueId,
+      .post(`/get_all_issues_duration`, {
+        user_id: selectedUserId,
       })
       .then((response) => {
         const data = response.data;
@@ -78,13 +87,14 @@ const IssueComponent: React.FC<Props> = ({ selectedIssueId }) => {
           Notification({ message: data.message, type: "error" });
           return;
         }
-
+        // short data by duration from high to low
+        data.data.sort((a: ChartData, b: ChartData) => b.duration - a.duration);
         setChartData(getColor(data.data));
       })
       .catch((_error) => {
         Notification({ message: "Problem fetching data", type: "error" });
       });
-  }, [selectedIssueId]);
+  }, [selectedUserId]);
 
   return (
     <div className="flex space-x-4">
@@ -110,17 +120,14 @@ const IssueComponent: React.FC<Props> = ({ selectedIssueId }) => {
               <Pie
                 data={chartData}
                 dataKey="percentage"
-                nameKey="_id"
+                nameKey="issue_name"
                 innerRadius={40}
               />
-              {chartData.map((entry) => (
-                <ChartLegend key={entry._id} color={entry.fill} />
-              ))}
             </PieChart>
           </ChartContainer>
         </CardContent>
       </Card>
-      <div className="w-1/2">
+      <Card className="w-1/2">
         <div className="max-h-[400px] overflow-y-auto">
           <table className="table-auto w-full text-left">
             <thead className="bg-gray-50">
@@ -128,9 +135,7 @@ const IssueComponent: React.FC<Props> = ({ selectedIssueId }) => {
                 <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Name
                 </th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Count
-                </th>
+
                 <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Duration
                 </th>
@@ -141,16 +146,23 @@ const IssueComponent: React.FC<Props> = ({ selectedIssueId }) => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {chartData.map((data) => (
-                <tr key={data._id}>
+                <tr key={data.issue_name}>
                   <td
                     className="px-4 py-2 text-center"
                     style={{ color: data.fill }}
                   >
-                    {data._id}
+                    <a
+                      href={data.url}
+                      className="underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {data.issue_name}
+                    </a>
                   </td>
-                  <td className="px-4 py-2 text-center">{data.total_time}</td>
+
                   <td className="px-4 py-2 text-center">
-                    {secondsToHMSorDays(data.total_duration)}
+                    {secondsToHMSorDays(data.duration)}
                   </td>
                   <td className="px-4 py-2 text-center">
                     {data.percentage.toFixed(2)}%
@@ -160,9 +172,9 @@ const IssueComponent: React.FC<Props> = ({ selectedIssueId }) => {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };
 
-export default IssueComponent;
+export default UserComponent;

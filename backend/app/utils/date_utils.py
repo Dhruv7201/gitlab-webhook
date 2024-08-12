@@ -43,3 +43,49 @@ def format_duration(seconds: float) -> str:
     td = timedelta(seconds=seconds)
     td = str(td).split(".")[0]
     return str(td)
+
+
+def convert_to_IST(utc_dt):
+
+    # Define UTC time zone
+    UTC = tz.gettz('UTC')
+    # Define IST time zone (UTC+5:30)
+    IST = tz.gettz('Asia/Kolkata')
+    if utc_dt[-1] == 'Z':
+        utc_dt = datetime.fromisoformat(utc_dt[:-1])
+    else:
+        utc_dt = datetime.fromisoformat(utc_dt.replace('Z', '+00:00'))
+    # Attach the UTC timezone information
+    utc_dt = utc_dt.replace(tzinfo=UTC)
+
+    # Convert time zone
+    ist_dt = utc_dt.astimezone(IST)
+    return ist_dt
+
+
+def formate_date_range(date_range):
+    if date_range.get("from") and date_range.get("to"):
+        # Convert UTC to IST for both "from" and "to" dates
+        date_range["from"] = convert_to_IST(date_range["from"])
+        date_range["to"] = convert_to_IST(date_range["to"])
+
+        if date_range["from"] == date_range["to"]:
+            # If "from" and "to" are the same, set "from" to the start of the day and "to" to the end of the day
+            date_range["from"] = date_range["from"].replace(hour=0, minute=0, second=0)
+            date_range["to"] = date_range["to"].replace(hour=23, minute=59, second=59)
+        else:
+            # Ensure "from" starts at 00:00:00 and "to" ends at 23:59:59
+            date_range["from"] = date_range["from"].replace(hour=0, minute=0, second=0)
+            date_range["to"] = date_range["to"].replace(hour=23, minute=59, second=59)
+    elif date_range.get("from") and not date_range.get("to"):
+        print('111111111111111111111111111')
+        date_range["from"] = convert_to_IST(date_range["from"])
+        date_range["from"] = date_range["from"].replace(hour=0, minute=0, second=0)
+        date_range['to'] = date_range["from"]
+        date_range["to"] = date_range["to"].replace(hour=23, minute=59, second=59)
+        
+    else:
+        # from = one month ago, to = today
+        date_range["to"] = datetime.now()
+        date_range["from"] = date_range["to"] - timedelta(days=30)
+    return date_range

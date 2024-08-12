@@ -26,8 +26,9 @@ async def webhook(request: dict, db=Depends(get_connection)):
         if 'milestone_id' in payload['changes']:
             try:
                 curr_milestone_id = payload['changes']['milestone_id']['current']
+                prev_milestone_id = payload['changes']['milestone_id']['previous']
                 updated_at = payload['changes']['updated_at']['current']
-                push_milestone(issue_object['id'], curr_milestone_id, updated_at, db)
+                push_milestone(issue_object['id'], curr_milestone_id, prev_milestone_id, updated_at, db)
             except Exception as e:
                 return {"status": False, "data": list([]), "message": e}
 

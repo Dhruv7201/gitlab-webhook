@@ -1,5 +1,6 @@
 import * as React from "react";
 import api from "@/utils/api";
+import { useNavigate } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -33,6 +34,7 @@ const chartConfig = {
 
 type BarData = {
   name: string;
+  id: number;
   time_waste: string;
   format: any;
   title: string;
@@ -41,10 +43,13 @@ type BarData = {
 
 interface Props {
   selectedProjectId: number;
+  dateRange: any;
 }
 
-const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
+const WorkBarChart: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const [barData, setBarData] = React.useState<BarData[]>([]);
+
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     api
@@ -83,6 +88,12 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
     );
   };
 
+  const handleBarClick = (data: any) => {
+    if (data && data.issue_id) {
+      navigate(`/issue/${data.issue_id}`);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -108,9 +119,11 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId }) => {
             />
             <Tooltip content={renderTooltipContent} />
             <Bar
+              className="hover:cursor-pointer"
               dataKey="total_duration"
               fill="var(--color-desktop)"
               radius={8}
+              onClick={(data) => handleBarClick(data)}
             >
               <LabelList
                 position="top"

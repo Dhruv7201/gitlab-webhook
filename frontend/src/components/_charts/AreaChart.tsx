@@ -1,8 +1,14 @@
 import * as React from "react";
 import api from "@/utils/api";
+import { useNavigate } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import Notification from "../../Notification";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/_ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/_ui/card";
 import {
   ChartConfig,
   ChartContainer,
@@ -10,11 +16,13 @@ import {
   ChartTooltipContent,
   ChartLegend,
 } from "@/components/_ui/chart";
+import { DateRange } from "react-day-picker";
 
 type ChartData = {
-  labels: string[];
-  completed_issues: number[];
-  assigned_issues: number[];
+  user: string;
+  user_id: number;
+  completed_issues: number;
+  assigned_issues: number;
 };
 
 const chartConfig = {
@@ -30,15 +38,24 @@ const chartConfig = {
 
 interface Props {
   selectedProjectId: number;
+  dateRange: DateRange;
 }
 
-const BarChartCom: React.FC<Props> = ({ selectedProjectId }) => {
+const BarChartCom: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
+  const navigate = useNavigate();
+
+  const handleBarClick = (data: any) => {
+    if (data && data.user_id) {
+      navigate(`/user/${data.user_id}`);
+    }
+  };
 
   React.useEffect(() => {
     api
       .post(`/user_activity_chart`, {
         project_id: selectedProjectId,
+        dateRange,
       })
       .then((response) => {
         const data = response.data;
@@ -49,6 +66,7 @@ const BarChartCom: React.FC<Props> = ({ selectedProjectId }) => {
         const transformedData = data.data.labels.map(
           (label: string, index: number) => ({
             user: label,
+            user_id: data.data.user_id[index],
             completed_issues: data.data.completed_issues[index],
             assigned_issues: data.data.assigned_issues[index],
           })
@@ -58,7 +76,7 @@ const BarChartCom: React.FC<Props> = ({ selectedProjectId }) => {
       .catch((_error: any) => {
         Notification({ message: "Problem fetching users", type: "error" });
       });
-  }, [selectedProjectId]);
+  }, [selectedProjectId, dateRange]);
 
   return (
     <Card>
@@ -87,23 +105,26 @@ const BarChartCom: React.FC<Props> = ({ selectedProjectId }) => {
               cursor={false}
               content={<ChartTooltipContent indicator="dashed" />}
             />
+
             <Bar
+              className="hover:cursor-pointer"
               dataKey="completed_issues"
               fill="var(--color-desktop)"
               radius={4}
+              onClick={(data) => handleBarClick(data)}
             />
             <Bar
+              className="hover:cursor-pointer"
               dataKey="assigned_issues"
               fill="var(--color-mobile)"
               radius={4}
+              onClick={(data) => handleBarClick(data)}
             />
-            {chartData.map((_entry, index) => (
-              <ChartLegend key={index} color="var(--color-desktop)" />
-            ))}
           </BarChart>
         </ChartContainer>
       </CardContent>
     </Card>
   );
 };
+
 export default BarChartCom;

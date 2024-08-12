@@ -2,12 +2,13 @@ import api from "@/utils/api";
 import * as React from "react";
 import "./issueFooter.css";
 import { ListFilter } from "lucide-react";
+import { secondsToHMSorDays } from "@/utils/timeFormate";
 
 interface Props {
   selectedIssueId: number;
 }
 
-type Label_info = {
+type LabelInfo = {
   start_time: string;
   label: string;
   duration: number;
@@ -16,7 +17,7 @@ type Label_info = {
 
 type ChartData = {
   name: string;
-  label_info: Label_info;
+  label_info: LabelInfo;
 };
 
 const IssueFooter: React.FC<Props> = ({ selectedIssueId }) => {
@@ -26,7 +27,7 @@ const IssueFooter: React.FC<Props> = ({ selectedIssueId }) => {
   React.useEffect(() => {
     api
       .post("/get_user_by_work", {
-        issue_id: Number(selectedIssueId),
+        issue_id: selectedIssueId,
       })
       .then((response) => {
         const sortedData = response.data.data.sort(
@@ -41,14 +42,6 @@ const IssueFooter: React.FC<Props> = ({ selectedIssueId }) => {
         setUserWorkArr(sortedData);
       });
   }, [selectedIssueId, sortOrder]);
-
-  const msToTime = (duration: number) => {
-    const seconds = Math.floor((duration / 1000) % 60);
-    const minutes = Math.floor((duration / (1000 * 60)) % 60);
-    const hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
-
-    return `${hours}h ${minutes}m ${seconds}s`;
-  };
 
   const toggleSortOrder = () => {
     setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
@@ -76,7 +69,7 @@ const IssueFooter: React.FC<Props> = ({ selectedIssueId }) => {
         <div key={index} className="w-full bg-white p-4 rounded-md shadow-md">
           <div className="flex justify-between items-center">
             <div className="w-1/4 text-center bg-blue-100 p-2 rounded-md">
-              {msToTime(work.label_info.duration)}
+              {secondsToHMSorDays(work.label_info.duration)}
             </div>
             <div className="w-1/4 text-center bg-green-100 p-2 rounded-md">
               {work.name}
@@ -85,10 +78,7 @@ const IssueFooter: React.FC<Props> = ({ selectedIssueId }) => {
               {work.label_info.percentage.toFixed(2)}%
             </div>
             <div className="w-1/4 text-center bg-red-100 p-2 rounded-md">
-              {work.label_info.start_time
-                .replace("T", " ")
-                .replace("Z", "")
-                .slice(0, -4)}
+              {new Date(work.label_info.start_time).toLocaleString()}
             </div>
           </div>
         </div>
