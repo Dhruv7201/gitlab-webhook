@@ -1,7 +1,7 @@
 import DonutLabels from "@/components/_charts/DonutLabels";
 import AreaChartCom from "@/components/_charts/AreaChart";
 import Barchart from "@/components/_charts/BarChart";
-import React from "react";
+import React, { useEffect } from "react";
 import EditableDropdown from "../components/_ui/EditableDropdown";
 import CustomChart from "@/components/_charts/CustomChart";
 import WorkBarChart from "@/components/_charts/WorkBarChart";
@@ -32,18 +32,35 @@ const ChartsPage = () => {
     window.open(`${api}/daily_work_report`);
   };
 
+  const handleReset = () => {
+    setDate({
+      from: monthAgo(),
+      to: new Date(),
+    });
+    setSelectedProjectId(0);
+  };
+
+  useEffect(() => {
+    if (localStorage.getItem("selectedProjectId")) {
+      setSelectedProjectId(Number(localStorage.getItem("selectedProjectId")));
+    } else {
+      setSelectedProjectId(0);
+      localStorage.setItem("selectedProjectId", "0");
+    }
+  }, []);
+
   return (
     <>
       <div className="p-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between md:gap-4 gap-2">
-          <EditableDropdown setSelectedProjectId={setSelectedProjectId} />
+          <EditableDropdown
+            setSelectedProjectId={setSelectedProjectId}
+            selectedProjectId={selectedProjectId}
+          />
           <DatePickerWithRange date={date} setDate={setDate} />
           <div className="flex flex-col md:flex-row md:ml-auto md:gap-4 gap-2">
             <div className="flex gap-2 md:ml-auto">
-              <Button
-                onClick={() => setDate({ from: monthAgo(), to: new Date() })}
-                className="bg-blue-600"
-              >
+              <Button onClick={handleReset} className="bg-blue-600">
                 Reset
               </Button>
               <Button className="bg-blue-600" onClick={dailyReportDownload}>

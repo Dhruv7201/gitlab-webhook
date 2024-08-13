@@ -40,14 +40,14 @@ const AssignTaskList: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   }, [selectedProjectId]);
 
   return (
-    <div className="mx-auto p-4">
-      <div style={{ height: 50 }}>
+    <div className="mt-6">
+      <div>
         <h1 className="text-2xl font-semibold leading-none tracking-tight">
           Assign tasks
         </h1>
       </div>
 
-      <table className="w-full mt-4 bg-white shadow-md rounded-md overflow-hidden border border-gray-200">
+      <table className="w-full mt-4 bg-white rounded-md overflow-hidden border border-gray-200">
         <thead className="bg-gray-100">
           <tr>
             <th className="py-2 px-4 font-medium text-sm text-gray-700">

@@ -68,12 +68,13 @@ const IssueFooter: React.FC<Props> = ({ selectedIssueId }) => {
       {userWorkArr.map((work, index) => (
         <div key={index} className="w-full bg-white p-4 rounded-md shadow-md">
           <div className="flex justify-between items-center">
-            <div className="w-1/4 text-center bg-blue-100 p-2 rounded-md">
-              {secondsToHMSorDays(work.label_info.duration)}
-            </div>
             <div className="w-1/4 text-center bg-green-100 p-2 rounded-md">
               {work.name}
             </div>
+            <div className="w-1/4 text-center bg-blue-100 p-2 rounded-md">
+              {secondsToHMSorDays(work.label_info.duration)}
+            </div>
+
             <div className="w-1/4 text-center bg-yellow-100 p-2 rounded-md">
               {work.label_info.percentage.toFixed(2)}%
             </div>

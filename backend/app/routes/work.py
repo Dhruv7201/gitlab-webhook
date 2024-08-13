@@ -44,6 +44,12 @@ async def get_work(request: dict, conn=Depends(get_connection)):
                 "user_id":{'$first':'$id'},
                 "work_done_count": { "$sum": 1 }
                 }
+            },
+            {
+                "$sort": {
+                "work_done_count": -1
+                }
+            
             }
         ]
         result = user_collection.aggregate(aggregate)
@@ -123,6 +129,11 @@ async def get_work_duration_by_task(request: dict, conn = Depends(get_connection
                     "_id": "$issue_info.title",
                     "issue_id": { "$first": "$work.issue_id" },
                     "total_duration": { "$sum": "$work.duration" }
+                }
+            },
+            {
+                "$sort": {
+                    "total_duration": 1
                 }
             },
             {

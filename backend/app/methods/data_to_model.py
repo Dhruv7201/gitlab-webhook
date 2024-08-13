@@ -69,8 +69,6 @@ def insert_work_in_user(payload, db):
                 'duration': None
             })
     user_id = payload['user']['username']
-    print(curr_labels)
-    print(previous_labels)
     if 'Ready for release' in [label['title'] for label in curr_labels] and 'Ready for release' not in [label['title'] for label in previous_labels]:
         end_qa_assign(payload, db)
 

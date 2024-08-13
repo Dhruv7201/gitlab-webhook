@@ -13,6 +13,7 @@ type Data = {
   name: string;
   duration: number;
   issue_name: string;
+  url: string;
   created_at: number;
   last_update: number;
 };
@@ -108,15 +109,22 @@ const IssueTable: React.FC<Props> = ({ selectedProjectId, lableName }) => {
                   >
                     {issue.issue_name.length > 100 ? (
                       <a
-                        title={issue.issue_name}
-                        className="font-medium text-gray-900 truncate"
+                        href={issue.url}
+                        className="font-medium text-gray-900 truncate underline"
+                        target="_blank"
+                        rel="noreferrer"
                       >
                         {issue.issue_name}
                       </a>
                     ) : (
-                      <p className="font-medium text-gray-900">
+                      <a
+                        className="font-medium text-gray-900 truncate underline"
+                        href={issue.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
                         {issue.issue_name}
-                      </p>
+                      </a>
                     )}
                     <div>
                       created {renderLabel(issue.created_at)} ago by{" "}

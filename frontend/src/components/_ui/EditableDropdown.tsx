@@ -15,40 +15,69 @@ type Project = {
   id: number;
   name: string;
 };
+
 interface Props {
   setSelectedProjectId: (id: number) => void;
+  selectedProjectId: number;
 }
 
-const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
+const EditableDropdown: React.FC<Props> = ({
+  setSelectedProjectId,
+  selectedProjectId,
+}) => {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
-  const [availableProject, setAvailableProject] = React.useState(false);
   const [selectedProjectName, setSelectedProjectName] =
-    React.useState("View All Projects");
+    React.useState<string>("Select Project");
 
   const [projects, setProjects] = React.useState<Project[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = React.useState(false);
 
+  // Fetch projects and initialize selected project ID
   React.useEffect(() => {
     api
       .post("/projects")
       .then((response) => {
         const data = response.data;
-        if (data.status == false) {
+        if (data.status === false) {
           Notification({ message: data.message, type: "error" });
           return;
         }
         setProjects(data.data);
+        setIsDataLoaded(true);
+
+        // Initialize selected project ID from local storage
+        const storedProjectId = localStorage.getItem("selectedProjectId");
+        if (storedProjectId) {
+          const id = Number(storedProjectId);
+          if (data.data.some((project: Project) => project.id === id)) {
+            setSelectedProjectId(id);
+          }
+        }
       })
       .catch((_error) => {
-        Notification({ message: "Problem fetching users", type: "error" });
+        Notification({ message: "Problem fetching projects", type: "error" });
       });
-  }, []);
+  }, [setSelectedProjectId]);
 
-  function onSearchButtonClick(project: { id: number; name: string }) {
+  React.useEffect(() => {
+    // Update the selected project name based on selectedProjectId and projects
+    if (isDataLoaded) {
+      const project = projects.find(
+        (project) => Number(project.id) === selectedProjectId
+      );
+      if (project) {
+        setSelectedProjectName(project.name);
+      }
+    }
+  }, [selectedProjectId, projects, isDataLoaded]);
+
+  function onSearchButtonClick(project: Project) {
     setSelectedProjectId(Number(project.id));
     setValue("");
     setSelectedProjectName(project.name);
     setOpen(false);
+    localStorage.setItem("selectedProjectId", project.id.toString());
   }
 
   return (
@@ -56,7 +85,6 @@ const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          role="combobox"
           className="justify-between"
           aria-expanded="true"
           data-state="opened"
@@ -72,7 +100,6 @@ const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
               type="text"
               autoFocus
               onChange={(e) => {
-                setAvailableProject(false);
                 setValue(e.target.value);
               }}
               value={value}
@@ -82,7 +109,7 @@ const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
             <div>
               {projects
                 .filter((item) => {
-                  if (value == "") {
+                  if (value === "") {
                     return true;
                   }
                   const input_value = value.toLowerCase();
@@ -109,13 +136,13 @@ const EditableDropdown: React.FC<Props> = ({ setSelectedProjectId }) => {
                     setValue("");
                     setSelectedProjectName("View All Projects");
                     setOpen(false);
+                    localStorage.setItem("selectedProjectId", "0");
                   }}
                   className="cursor-pointer p-2 hover:bg-gray-100 rounded"
                 >
                   View All Projects
                 </h1>
               )}
-              {availableProject && <h1 className="p-2">No project found</h1>}
             </div>
           </div>
         </Command>

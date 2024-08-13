@@ -4,6 +4,7 @@ from typing import Dict, Any
 from app.utils.date_utils import format_duration, formate_date_range
 import requests
 import os
+from datetime import datetime
 
 router = APIRouter()
 
@@ -34,6 +35,8 @@ async def read_all_user(db=Depends(get_connection)):
         users = user_collection.find({})
         user_response = []
         for user in users:
+            if not 'work' in user:
+                continue
             if 'assign_issues' not in user:
                 user['assign_issues'] = []
             total_assign = len(user['assign_issues'])
@@ -398,6 +401,10 @@ async def get_user_time_waste(request: dict, conn = Depends(get_connection)):
                 }
             },
             {
+                "$sort": {"total_time_waste": 1}
+
+            },
+            {
                 '$project': {
                     'username': '$_id',
                     'user_id': '$id',
@@ -494,62 +501,69 @@ def get_all_issues_duration(request: dict, conn=Depends(get_connection)):
         return {"status": False, "data": [], "message": str(e)}
 
 @router.post("/get_work_duration_time")
-def get_work_duration_time(request:dict, conn=Depends(get_connection)):
+def get_work_duration_time(request: Dict[str, Any], conn=Depends(get_connection)):
     try:
         user_connection = conn['users']
         user_id = request.get('userId')
+
+        # Pipeline to aggregate work duration
         pipeline = [
             {'$match': {'id': user_id}},
-            {
-            '$unwind':'$work'
-            },
+            {'$unwind': '$work'},
             {
                 '$addFields': {
-                            'timeToReturn': {
-                                '$cond': {
-                                    'if': { '$eq': ['$work.end_time', None] },
-                                    'then': { '$divide': [{ '$subtract': [ '$$NOW', '$work.start_time' ]}, 1000] },
-                                    'else': '$work.duration'
-                                }
-                            }
+                    'timeToReturn': {
+                        '$cond': {
+                            'if': {'$eq': ['$work.end_time', None]},
+                            'then': {'$divide': [{'$subtract': [datetime.utcnow(), '$work.start_time']}, 1000]},
+                            'else': '$work.duration'
                         }
-            },
-            {
-                '$lookup': {
-                'from': 'issues',
-                'localField': 'work.issue_id',
-                'foreignField': 'id',
-                'as': 'result'
+                    }
                 }
             },
             {
-                '$unwind':'$result'
+                '$lookup': {
+                    'from': 'issues',
+                    'localField': 'work.issue_id',
+                    'foreignField': 'id',
+                    'as': 'result'
+                }
             },
+            {'$unwind': '$result'},
+            {'$sort': {'work.start_time': 1}},
             {
-            '$sort':{
-                'work.start_time':1
+                '$project': {
+                    '_id': 0,
+                    'duration': '$timeToReturn',
+                    'issue_name': '$result.title',
+                    'issue_url': '$result.url',
+                    'start_time': '$work.start_time'
+                }
             }
-            },
-            {
-            '$project':{
-                '_id':0,
-                'duration':'$timeToReturn',
-                'issue_name':'$result.title',
-                'issue_url':'$result.url',
-                'start_time':'$work.start_time',
-                
-            }
-            }
-            
-            ]
+        ]
+
+        # Execute the aggregation pipeline
         result = list(user_connection.aggregate(pipeline))
-        total_time = sum(res['duration'] for res in result)
-        data = [{'duration':res['duration'], 'issue_name':res['issue_name'],'issue_url':res['issue_url'], 'start_time':res['start_time'], 'percentage': (res['duration'] * 100) / total_time if total_time > 0 else 0}for res in result]
-        
-        return {'status':True, 'data':data, 'message':'Work and duration for user got Successfully'}
+
+        # Calculate total time and percentage
+        total_time = sum(res['duration'] for res in result if res['duration'] is not None)
+
+        # Format result data
+        data = [
+            {
+                'duration': res['duration'],
+                'issue_name': res['issue_name'],
+                'issue_url': res['issue_url'],
+                'start_time': res['start_time'],
+                'percentage': (res['duration'] * 100 / total_time) if total_time > 0 else 0
+            }
+            for res in result
+        ]
+
+        return {'status': True, 'data': data, 'message': 'Work and duration for user retrieved successfully'}
 
     except Exception as e:
-        return {'status':False, 'data':list([]), 'message':'Error in getting Work and duration for user'}
+        return {'status': False, 'data': [], 'message': f'Error in getting work and duration for user: {str(e)}'}
     
 
 import requests
@@ -599,7 +613,6 @@ def get_user_all_info(request: dict, conn=Depends(get_connection)):
 
         token = os.getenv('GITLAB_KEY')
         headers = {'PRIVATE-TOKEN': token}
-        print(result)
         response = requests.get(f'https://code.ethicsinfotech.in/api/v4/users?username={result["username"]}', headers=headers)
         
         if response.status_code != 200:

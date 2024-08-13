@@ -48,7 +48,6 @@ const UserProjectData: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
         project_id: selectedProjectId,
       })
       .then((response) => {
-        console.log(response);
         const data = response.data;
         if (data.status == false) {
           Notification({ message: data.message, type: "error" });
@@ -62,13 +61,13 @@ const UserProjectData: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
       });
   }, [selectedProjectId]);
   return (
-    <div className="mx-auto p-4">
-      <div style={{ height: 50 }}>
+    <div className="mt-6">
+      <div className="mb-4">
         <h1 className="text-2xl font-semibold leading-none tracking-tight">
           Work Done By users Table
         </h1>
       </div>
-      <table className="w-full mt-4 bg-white shadow-md rounded-md overflow-hidden">
+      <table className="w-full mt-4 bg-white rounded-md overflow-hidden">
         <thead className="bg-gray-100">
           <tr>
             <th className="py-2 px-4 font-medium text-sm text-gray-700">

@@ -1,4 +1,11 @@
-import { ArrowDown, LayoutDashboard, Milestone, Menu } from "lucide-react";
+import {
+  ArrowDown,
+  LayoutDashboard,
+  Milestone,
+  Menu,
+  Users,
+  Filter,
+} from "lucide-react";
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 
@@ -46,15 +53,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </li>
               <li>
                 <NavLink
-                  to="/milestones"
+                  to="/filters"
                   className={({ isActive }) =>
                     `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
                       isActive ? "bg-gray-800" : "hover:bg-gray-700"
                     }`
                   }
                 >
-                  <Milestone size={24} />
-                  <span>Milestones</span>
+                  <Filter size={24} />
+                  <span>Issues</span>
                 </NavLink>
               </li>
               <li>
@@ -81,14 +88,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     <ul className="space-y-1">
                       <li>
                         <NavLink
-                          to="/filters"
+                          to="/milestones"
                           className={({ isActive }) =>
                             `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
                               isActive ? "bg-gray-400" : "hover:bg-gray-700"
                             }`
                           }
                         >
-                          Filters
+                          <Milestone size={24} />
+                          <span>Milestones</span>
                         </NavLink>
                       </li>
                       <li>
@@ -100,7 +108,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             }`
                           }
                         >
-                          Users
+                          <Users size={24} />
+                          <span> Users</span>
                         </NavLink>
                       </li>
                     </ul>

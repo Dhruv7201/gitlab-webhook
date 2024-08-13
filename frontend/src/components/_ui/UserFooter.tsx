@@ -68,7 +68,7 @@ const UserFooter: React.FC<Props> = ({ selectedUserId }) => {
       <div key={0} className="w-full bg-white p-4 rounded-md shadow-md">
         <div className="flex justify-between items-center">
           <div
-            className="w-3/4 text-center bg-green-100 p-2 rounded-md cursor-pointer"
+            className="w-3/4 text-center bg-green-100 p-2 rounded-md"
             title="Issue Name"
           >
             Issue Name

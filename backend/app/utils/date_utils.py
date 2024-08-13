@@ -78,7 +78,6 @@ def formate_date_range(date_range):
             date_range["from"] = date_range["from"].replace(hour=0, minute=0, second=0)
             date_range["to"] = date_range["to"].replace(hour=23, minute=59, second=59)
     elif date_range.get("from") and not date_range.get("to"):
-        print('111111111111111111111111111')
         date_range["from"] = convert_to_IST(date_range["from"])
         date_range["from"] = date_range["from"].replace(hour=0, minute=0, second=0)
         date_range['to'] = date_range["from"]
