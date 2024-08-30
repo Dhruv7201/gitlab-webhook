@@ -48,7 +48,7 @@ type ChartData = {
   user_id: number;
 };
 
-const CustomChart: React.FC<Props> = ({ selectedProjectId }) => {
+const CustomChart: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const [chartData, setChartData] = React.useState<ChartData[]>([]);
   const navigate = useNavigate();
 
@@ -62,6 +62,7 @@ const CustomChart: React.FC<Props> = ({ selectedProjectId }) => {
     api
       .post(`/work_done`, {
         project_id: selectedProjectId,
+        dateRange,
       })
       .then((response) => {
         const data = response.data;
@@ -74,7 +75,7 @@ const CustomChart: React.FC<Props> = ({ selectedProjectId }) => {
       .catch((_error) => {
         Notification({ message: "Problem fetching users", type: "error" });
       });
-  }, [selectedProjectId]);
+  }, [selectedProjectId, dateRange]);
   return (
     <Card>
       <CardHeader>

@@ -65,11 +65,33 @@ const IssueFooter: React.FC<Props> = ({ selectedIssueId }) => {
           )}
         </button>
       </div>
+      <div className="w-full bg-white p-4 rounded-md shadow-md">
+        <div className="flex justify-between items-center">
+          <div className="w-1/4 text-center bg-green-100 p-2 rounded-md">
+            User
+          </div>
+          <div className="w-1/4 text-center bg-purple-100 p-2 rounded-md">
+            Label
+          </div>
+          <div className="w-1/4 text-center bg-blue-100 p-2 rounded-md">
+            Duration
+          </div>
+          <div className="w-1/4 text-center bg-yellow-100 p-2 rounded-md">
+            Percentage
+          </div>
+          <div className="w-1/4 text-center bg-red-100 p-2 rounded-md">
+            Start Time
+          </div>
+        </div>
+      </div>
       {userWorkArr.map((work, index) => (
         <div key={index} className="w-full bg-white p-4 rounded-md shadow-md">
           <div className="flex justify-between items-center">
             <div className="w-1/4 text-center bg-green-100 p-2 rounded-md">
               {work.name}
+            </div>
+            <div className="w-1/4 text-center bg-purple-100 p-2 rounded-md">
+              {work.label_info.label}
             </div>
             <div className="w-1/4 text-center bg-blue-100 p-2 rounded-md">
               {secondsToHMSorDays(work.label_info.duration)}

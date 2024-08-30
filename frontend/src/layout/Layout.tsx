@@ -5,6 +5,7 @@ import {
   Menu,
   Users,
   Filter,
+  ListChecks,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
@@ -12,6 +13,18 @@ import { Link, NavLink } from "react-router-dom";
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  React.useEffect(() => {
+    // check path and set dropdownOpen
+    const path = window.location.pathname;
+    if (
+      path.includes("/milestones") ||
+      path.includes("/users") ||
+      path.includes("/issues")
+    ) {
+      setDropdownOpen(true);
+    }
+  }, []);
 
   return (
     <div className="flex h-screen">
@@ -86,7 +99,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     } overflow-hidden`}
                   >
                     <ul className="space-y-1">
-                      <li>
+                      {/* <li>
                         <NavLink
                           to="/milestones"
                           className={({ isActive }) =>
@@ -98,7 +111,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                           <Milestone size={24} />
                           <span>Milestones</span>
                         </NavLink>
-                      </li>
+                      </li> */}
                       <li>
                         <NavLink
                           to="/users"
@@ -110,6 +123,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         >
                           <Users size={24} />
                           <span> Users</span>
+                        </NavLink>
+                      </li>
+                      <li>
+                        <NavLink
+                          to="/issues"
+                          className={({ isActive }) =>
+                            `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
+                              isActive ? "bg-gray-400" : "hover:bg-gray-700"
+                            }`
+                          }
+                        >
+                          <ListChecks />
+                          <span> Issues</span>
                         </NavLink>
                       </li>
                     </ul>

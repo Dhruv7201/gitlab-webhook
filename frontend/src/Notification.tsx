@@ -6,6 +6,15 @@ type NotificationProps = {
 };
 
 const Notification = ({ message, type }: NotificationProps) => {
+  // if notification exists, dont create new one
+  if (
+    document.getElementsByClassName(
+      "Toastify__toast Toastify__toast-theme--light Toastify__toast--error"
+    ).length > 0
+  ) {
+    return;
+  }
+
   switch (type) {
     case "info":
       toast.info(message, { autoClose: 3000, pauseOnHover: false });

@@ -3,6 +3,8 @@ from datetime import datetime
 import requests
 import os
 
+labels_list = {'Doing':0, 'Testing':1, 'Documentation':2}
+
 def insert_logs(data, db):
     logs_collection = db['logs']
     data['inserted_at'] = datetime.now()
@@ -66,6 +68,17 @@ def update_work_of_user(curr_work_arr, username, db):
             update = {"$set": {"work": work_arr}}
             user_collection.update_one(filter, update)
 
+def insert_work_init_user(payload, db):
+    user_collection = db['users']
+    # add label to user work and add start time
+    label_to_add = payload['labels']
+    for label in label_to_add:
+        if label['title'] in labels_list:
+            curr_time = datetime.now()
+            filter = {'username':payload['user']['username']}
+            update = {"$push": {"work": {'issue_id':payload['object_attributes']['id'], 'project_id':payload['project']['id'], 'label':label['title'], 'start_time':curr_time, 'end_time':None, 'duration':None}}}
+            user_collection.update_one(filter, update)
+
 def insert_issues(payload, issue, changes,  db):
     issue_collection = db['issues']
 
@@ -77,6 +90,8 @@ def insert_issues(payload, issue, changes,  db):
             id = payload['object_attributes']['id']
             current_assign = payload['assignees']
             push_new_assign(id, current_assign, payload['project']['id'], db) 
+        if 'labels' in payload and payload['labels'] != []:
+            insert_work_init_user(payload, db)
 
     else:
         for key in changes:
@@ -98,7 +113,6 @@ def insert_issues(payload, issue, changes,  db):
                     issue_collection.update_one(filter, update)
                  
 def push_milestone(issue_id, curr_milestone_id, prev_milestone_id, updated_at ,db):
-    
     issue_collection = db['issues']
     filter = {'id':issue_id}
     curr_issue = issue_collection.find_one(filter)
@@ -121,6 +135,7 @@ def push_milestone(issue_id, curr_milestone_id, prev_milestone_id, updated_at ,d
 
 
 def push_assign(id, previous_assign, current_assign, project_id, db):
+    print(previous_assign, current_assign)
     issue_collection = db['issues']
     curr_time = datetime.now()
     filter = {'id':id}
@@ -142,7 +157,6 @@ def push_assign(id, previous_assign, current_assign, project_id, db):
         issue_collection.update_one(filter, update)
 
 def push_assign_to_user(issue_id,  prev_assign, curr_assign, project_id, db):
-
     curr_time = datetime.now()
     user_collection = db['users']
     if curr_assign != [] :
@@ -254,3 +268,65 @@ def end_qa_assign(payload, db):
             break
     update = {'$set':{'assign_issues':assign_issue_arr}}
     user_collection.update_one({'id':payload['user']['id']}, update)
+    # set Ready for release to true
+    update = {'$set':{'ready_for_release':True}}
+    issue_collection.update_one(filter, update)
+
+
+def onHold(payload, db):
+    # set OnHold to 1 if already 1 then add 1
+    issue_collection = db['issues']
+    filter = {'id':payload['object_attributes']['id']}
+    curr_issue = issue_collection.find_one(filter)
+    if 'OnHold' not in curr_issue:
+        update = {'$set':{'OnHold':1}}
+        issue_collection.update_one(filter, update)
+    else:
+        update = {'$set':{'OnHold':curr_issue['OnHold']+1}}
+        issue_collection.update_one(filter, update)
+
+
+def insert_work_item(payload, db):
+    issue_collection = db['issues']
+    work_item = {
+        'id':payload['object_attributes']['id'],
+        'iid':payload['object_attributes']['iid'],
+        'title':payload['changes']['title']['current'],
+        'author_id':payload['object_attributes']['author_id'],
+        'created_at':payload['object_attributes']['created_at'],
+        'updated_at':payload['object_attributes']['updated_at'],
+        'project_id':payload['project']['id'],
+        'due_date':payload['object_attributes']['due_date'],
+        'url':payload['object_attributes']['url'],
+        'state':payload['object_attributes']['state'],
+        'closed_at':None,
+        'description':payload['changes']['description']['current'] if 'description' in payload['changes'] else None,
+    }
+    print(work_item)
+    issue_collection.insert_one(work_item)
+
+
+def bind_child_task_to_issue(task, db):
+    task = task[0]
+    issue_collection = db['issues']
+    parent_iid = task['body'].split(' ')[1]
+    parent_iid = parent_iid.replace('#','')
+    parent_iid = int(parent_iid)
+    project_id = task['project_id']
+    filter = {'iid':parent_iid, 'project_id':project_id}
+    parent_issue = issue_collection.find_one(filter)
+    if parent_issue:
+        if 'child_tasks' not in parent_issue:
+            # push new child task to parent issue
+            update = {'$push':{'child_tasks':task['id']}}
+            issue_collection.update_one(filter, update)
+        else:
+            # push new child task to parent issue
+            update = {'$push':{'child_tasks':task['id']}}
+            issue_collection.update_one(filter, update)
+    # push parent issue to child task
+    filter = {'id':task['id']}
+    print(filter)
+    update = {'$set':{'parent_issue':parent_iid}}
+    issue_collection.update_one(filter, update)
+        

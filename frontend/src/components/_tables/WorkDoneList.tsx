@@ -46,6 +46,7 @@ const UserProjectData: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
     api
       .post("/user_work_done_list", {
         project_id: selectedProjectId,
+        dateRange: dateRange,
       })
       .then((response) => {
         const data = response.data;
@@ -59,7 +60,7 @@ const UserProjectData: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
       .catch((_error) => {
         Notification({ message: "Problem fetching users", type: "error" });
       });
-  }, [selectedProjectId]);
+  }, [selectedProjectId, dateRange]);
   return (
     <div className="mt-6">
       <div className="mb-4">

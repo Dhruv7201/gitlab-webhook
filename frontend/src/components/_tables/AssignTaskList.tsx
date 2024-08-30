@@ -24,7 +24,10 @@ const AssignTaskList: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
 
   useEffect(() => {
     api
-      .post("/assignee_task_list", { project_id: selectedProjectId })
+      .post("/assignee_task_list", {
+        project_id: selectedProjectId,
+        dateRange: dateRange,
+      })
       .then((response) => {
         const data: ApiResponse = response.data;
         if (data.status === false) {
@@ -37,7 +40,7 @@ const AssignTaskList: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
       .catch((error) => {
         Notification({ message: "Problem fetching users", type: "error" });
       });
-  }, [selectedProjectId]);
+  }, [selectedProjectId, dateRange]);
 
   return (
     <div className="mt-6">

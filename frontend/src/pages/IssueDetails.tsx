@@ -165,6 +165,12 @@ const IssueDetails = () => {
                         : issueInfo.data[0].reopen_count}
                     </td>
                   </tr>
+                  <tr>
+                    <td className="px-4 py-2 font-medium">Ready for release</td>
+                    <td className="px-4 py-2">
+                      {issueInfo.data[0].ready_for_release ? "Yes" : "No"}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>

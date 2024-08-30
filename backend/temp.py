@@ -2,7 +2,7 @@ import requests
 
 # Your GitLab instance URL and Personal Access Token (PAT)
 gitlab_url = "https://code.ethicsinfotech.in/"
-private_token = "glpat-bKmzyXVs_Wnyrzky3bEQ"
+private_token = ""
 
 # Webhook URL to which issue events will be sent
 webhook_url = "https://apidev.gitrepo.ethicstechnology.net/webhook"

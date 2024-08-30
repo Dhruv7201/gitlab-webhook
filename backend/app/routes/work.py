@@ -4,6 +4,7 @@ from app.db import get_connection
 import datetime
 import pandas as pd
 from pydantic import BaseModel
+from app.utils.date_utils import formate_date_range
 
 router = APIRouter()
 
@@ -14,48 +15,47 @@ class Request(BaseModel):
     
 
 @router.post("/work_done", tags=["work"])
-async def get_work(request: dict, conn=Depends(get_connection)):
+async def get_work(request: dict, conn = Depends(get_connection)):
     try:
-        
         project_id = request.get("project_id")
+        date_range = request.get("dateRange")
+        
+
+        date_range = formate_date_range(date_range)
+        start_date = date_range["from"]
+        end_date = date_range["to"]
+
         user_collection = conn["users"]
+
         aggregate = [
-            {
-                "$unwind": "$work"
-            }]
+            {"$unwind": "$work"}
+        ]
+        
+        match_conditions = {
+            "work.end_time": {"$ne": None},
+            "work.start_time": {"$gte": start_date, "$lte": end_date},
+            "work.end_time": {"$gte": start_date, "$lte": end_date}
+        }
+        
         if project_id != 0:
-            aggregate.append(
-                {
-                    "$match": {
-                        "work.end_time": { "$ne": None },
-                        "work.project_id": project_id
-                    }
-                }
-            )
+            match_conditions["work.project_id"] = project_id
+        
         aggregate += [
-            {
-                "$match": {
-                "work.end_time": { "$ne": None }
-                }
-            },
+            {"$match": match_conditions},
             {
                 "$group": {
-                "_id": "$name",
-                "user_id":{'$first':'$id'},
-                "work_done_count": { "$sum": 1 }
+                    "_id": "$name",
+                    "user_id": {'$first': '$id'},
+                    "work_done_count": {"$sum": 1}
                 }
             },
-            {
-                "$sort": {
-                "work_done_count": -1
-                }
-            
-            }
+            {"$sort": {"work_done_count": -1}}
         ]
+        
         result = user_collection.aggregate(aggregate)
-        return { "status": True, "data": list(result) , "message": "Work fetched successfully" }
+        return {"status": True, "data": list(result), "message": "Work fetched successfully"}
     except Exception as e:
-        return { "status": False, "data": list([]), "message": str(e) }
+        return {"status": False, "data": [], "message": str(e)}
     
 
 @router.post("/work_duration", tags=["work"])
@@ -91,6 +91,10 @@ async def get_work_duration(request:dict, conn = Depends(get_connection)):
 async def get_work_duration_by_task(request: dict, conn = Depends(get_connection)):
     try:
         project_id = request.get("project_id")
+        date_range = request.get("dateRange")
+        date_range = formate_date_range(date_range)
+        start_date = date_range["from"]
+        end_date = date_range["to"]
         user_collection = conn["users"]
         aggregate = [
             {
@@ -110,7 +114,9 @@ async def get_work_duration_by_task(request: dict, conn = Depends(get_connection
         aggregate += [
             {
                 "$match": {
-                    "work.end_time": { "$ne": None }
+                    "work.end_time": { "$ne": None },
+                    "work.start_time": { "$gte": start_date, "$lte": end_date },
+                    "work.end_time": { "$gte": start_date, "$lte": end_date }
                 }
             },
             {
@@ -158,6 +164,10 @@ async def get_user_work_done_list(request:dict, conn = Depends(get_connection)):
     try:
 
         project_id = request.get("project_id")
+        date_range = request.get("dateRange")
+        date_range = formate_date_range(date_range)
+        start_date = date_range["from"]
+        end_date = date_range["to"]
         user_collection = conn["users"]
         aggregate = [
             {
@@ -175,7 +185,9 @@ async def get_user_work_done_list(request:dict, conn = Depends(get_connection)):
         aggregate += [
             {
                 "$match": {
-                "work.end_time": { "$ne": None }
+                "work.end_time": { "$ne": None },
+                "work.start_time": { "$gte": start_date, "$lte": end_date },
+                "work.end_time": { "$gte": start_date, "$lte": end_date }
                 }
             },
             {
@@ -230,6 +242,10 @@ async def get_user_work_done_list(request:dict, conn = Depends(get_connection)):
 async def get_assignee_task_list(request: dict, conn=Depends(get_connection)):
     try:
         project_id = request.get("project_id")
+        date_range = request.get("dateRange")
+        date_range = formate_date_range(date_range)
+        start_date = date_range["from"]
+        end_date = date_range["to"]
         issues_collection = conn["issues"]
 
         aggregate = []
@@ -244,6 +260,11 @@ async def get_assignee_task_list(request: dict, conn=Depends(get_connection)):
         aggregate += [
             {
                 "$unwind": "$assign"
+            },
+            {
+                "$match": {
+                    "assign.start_time": { "$gte": start_date, "$lte": end_date }
+                }
             },
             {
                 "$lookup": {
@@ -315,19 +336,21 @@ def get_user_by_work(request: dict, conn=Depends(get_connection)):
                 '_id':0,
                 'name':'$name',
                 'started_at':'$work.start_time',
-                'label_info':{'start_time':'$work.start_time', 
-                                        'label':'$work.label',
-                                        'duration':{'$cond':{
-                                            'if': {'$ne': ['$work.end_time', None]},
-                                        'then':'$work.duration',
-                                        'else':{ "$subtract": ["$$NOW", "$work.start_time"] },
-                                        
-                                        }}
+                'label_info':{
+                    'start_time':'$work.start_time', 
+                    'label':'$work.label',
+                    'duration':{
+                        '$cond':{
+                            'if': {'$ne': ['$work.end_time', None]},
+                            'then':'$work.duration',
+                            'else':{'$divide':[{'$subtract':[datetime.datetime.now(), '$work.start_time']}, 1000]}
                             }
-                            
+                        }
                     }
+                }
             },
         ]
+
 
     response =  users_collection.aggregate(aggregation)
     result = list(response)
@@ -375,7 +398,7 @@ async def get_daily_work_report(conn=Depends(get_connection)):
                     "as": "assign",
                     "cond": {
                         "$and": [
-                            { "$eq": ["$$assign.issues_id", "$work.issue_id"] },
+                            { "$eq": ["$$assign.issue_id", "$work.issue_id"] },
                             { "$eq": ["$$assign.project_id", "$work.project_id"] }
                         ]
                     }

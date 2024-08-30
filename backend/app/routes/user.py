@@ -53,6 +53,8 @@ async def read_all_user(db=Depends(get_connection)):
                 'total_work': total_work
             })
 
+        user_response = sorted(user_response, key=lambda x: x['name'])
+
         
         
         return {"status": True, "data": user_response, "message":"Fetch User successfully"}
@@ -62,21 +64,24 @@ async def read_all_user(db=Depends(get_connection)):
 
 
 def get_gitlab_subgroup(project_id: int) -> str:
-    # Replace with your GitLab instance URL and API token
-    gitlab_url = "https://code.ethicsinfotech.in/api/v4"
-    api_token = os.getenv("GITLAB_KEY")
+    try:
+        # Replace with your GitLab instance URL and API token
+        gitlab_url = "https://code.ethicsinfotech.in/api/v4"
+        api_token = os.getenv("GITLAB_KEY")
 
-    response = requests.get(
-        f"{gitlab_url}/projects/{project_id}",
-        headers={"PRIVATE-TOKEN": api_token}
-    )
-    response.raise_for_status()  # Raise an error if the request failed
+        response = requests.get(
+            f"{gitlab_url}/projects/{project_id}",
+            headers={"PRIVATE-TOKEN": api_token}
+        )
+        response.raise_for_status()  # Raise an error if the request failed
 
-    project_data = response.json()
-    # Extract subgroup name from project data
-    if 'namespace' in project_data:
-        return project_data['namespace']['name']
-    return "Unknown"
+        project_data = response.json()
+        # Extract subgroup name from project data
+        if 'namespace' in project_data:
+            return project_data['namespace']['name']
+        return "Unknown"
+    except Exception as e:
+        return "Unknown"
     
 
 @router.post("/projects")
@@ -279,7 +284,7 @@ async def get_user_activity_chart(request: dict, conn = Depends(get_connection))
             }},
             {"$lookup": {
                 "from": "projects",
-                "localField": "assign_issues.issues_id",
+                "localField": "assign_issues.issue_id",
                 "foreignField": "id",
                 "as": "project_info"
             }},
@@ -565,10 +570,6 @@ def get_work_duration_time(request: Dict[str, Any], conn=Depends(get_connection)
     except Exception as e:
         return {'status': False, 'data': [], 'message': f'Error in getting work and duration for user: {str(e)}'}
     
-
-import requests
-import os
-
 @router.post("/get_user_all_info")
 def get_user_all_info(request: dict, conn=Depends(get_connection)):
     try:

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.db import get_connection
 from app.methods.data_entry import insert_logs, push_milestone, push_assign
-from app.methods.data_to_model import employee, project, issue, insert_work_in_user
+from app.methods.data_to_model import employee, project, issue, insert_work_in_user, work_item
 
 router = APIRouter()
 
@@ -40,4 +40,6 @@ async def webhook(request: dict, db=Depends(get_connection)):
             current_assign = payload['changes']['assignees']['current']
             push_assign(id, previous_assign, current_assign, project_id, db)  
 
-    
+    if payload['object_kind'] == 'work_item':
+        work_item(payload, db)
+        

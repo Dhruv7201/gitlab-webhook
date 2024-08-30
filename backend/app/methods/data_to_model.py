@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.methods.data_entry import  update_work_of_user, insert_user, insert_project, insert_issues, insertReOpen, reOpenIncrement, end_qa_assign
+from app.methods.data_entry import  update_work_of_user, insert_user, insert_project, insert_issues, insertReOpen, reOpenIncrement, end_qa_assign, onHold, insert_work_item, bind_child_task_to_issue
 from app.utils.date_utils import convert_to_ISC
 import requests
 import os
@@ -23,16 +23,6 @@ def employee(payload, db):
         assigned_employee = {'id':assign['id']  , 'username':assign['username'], 'name':assign['name'], 'email':user_email, 'avatar_url':assign['avatar_url'], 'assign_issues':[]
             }
         insert_user(assigned_employee, db)
-        user_collection = db['users']
-        if user_collection.find_one({'id':employee['id']}):
-            new_assign = {
-                "issues_id": payload['object_attributes']['id'],
-                "project_id": payload['project']['id'],
-                "start_time": datetime.now(),
-                "end_time": None,
-                "duration": None,
-            }
-            user_collection.update_one({'id':employee['id']}, {'$push': {'assign_issues': new_assign}})
 
 
 def insert_work_in_user(payload, db):
@@ -71,6 +61,8 @@ def insert_work_in_user(payload, db):
     user_id = payload['user']['username']
     if 'Ready for release' in [label['title'] for label in curr_labels] and 'Ready for release' not in [label['title'] for label in previous_labels]:
         end_qa_assign(payload, db)
+    if 'OnHold' in [label['title'] for label in curr_labels] and 'OnHold' not in [label['title'] for label in previous_labels]:
+        onHold(payload, db)
 
     update_work_of_user(curr_work, user_id, db)
 
@@ -83,7 +75,7 @@ def issue(payload,  db):
         issue_object = payload['object_attributes']
         project_info = payload['project']
             
-        insert_issues(payload, {'id':issue_object['id'], 'title':issue_object['title'],'author_id':issue_object['author_id'], 'created_at':convert_to_ISC(issue_object['created_at']), 'updated_at':convert_to_ISC(issue_object['updated_at']),'project_id':project_info['id'], 'description':issue_object['description'], 'due_date':convert_to_ISC(issue_object['due_date']),'url':issue_object['url'], 'state':issue_object['state'], 'closed_at':None }, changes,  db)
+        insert_issues(payload, {'id':issue_object['id'], 'iid':issue_object['iid'], 'title':issue_object['title'],'author_id':issue_object['author_id'], 'created_at':convert_to_ISC(issue_object['created_at']), 'updated_at':convert_to_ISC(issue_object['updated_at']),'project_id':project_info['id'], 'description':issue_object['description'], 'due_date':convert_to_ISC(issue_object['due_date']),'url':issue_object['url'], 'state':issue_object['state'], 'closed_at':None }, changes,  db)
 
         if 'labels' in payload['changes']:
             currLabel = payload['changes']['labels']['current']
@@ -97,3 +89,25 @@ def issue(payload,  db):
                 insertReOpen(issue_object['id'],1,  db)
             elif reOpen in titles:
                 insertReOpen(issue_object['id'],0,  db)
+
+
+def work_item(payload, db):
+    import requests
+    import os
+
+    # Your GitLab instance URL and Personal Access Token (PAT)
+    gitlab_url = "https://code.ethicsinfotech.in/"
+    private_token = os.getenv('GITLAB_KEY')
+    headers = {
+        "Private-Token": private_token
+    }
+    task_id = payload['object_attributes']['iid']
+    project_id = payload['object_attributes']['project_id']
+    print(task_id)
+    print(project_id)
+    task_url = f"{gitlab_url}/api/v4/projects/{project_id}/issues/{task_id}/notes"
+    response = requests.get(task_url, headers=headers)
+    task = response.json()
+    bind_child_task_to_issue(task, db)
+    insert_work_item(payload, db)
+    

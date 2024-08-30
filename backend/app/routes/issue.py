@@ -138,6 +138,10 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
         milestone_id = request.get("milestone_id")
         project_id = request.get("project_id")
         all_milestones = request.get("all_milestones")
+        date_range = request.get("dateRange")
+        date_range = formate_date_range(date_range)
+        start_date = date_range.get("from")
+        end_date = date_range.get("to")
         user_collection = conn["issues"]
 
         # Build the match criteria dynamically
@@ -162,7 +166,11 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
             },
             {
                 "$match": {
-                    "milestone": { "$exists": True, "$not": { "$size": 0 } }
+                    "milestone": { "$exists": True, "$not": { "$size": 0 } },
+                    "created_at": {
+                        "$gte": start_date,
+                        "$lte": end_date
+                    }
                 }
             },
             {
@@ -175,19 +183,21 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
                     },
                     "assign_time": {
                         "$divide": [
-                            { "$sum": {
-                                "$map": {
-                                    "input": "$assign",
-                                    "as": "a",
-                                    "in": {
-                                        "$cond": [
-                                            {"$and": [{"$ne": ["$$a.end_time", None]}, {"$ne": ["$$a.duration", None]}]},
-                                            "$$a.duration",
-                                            0
-                                        ]
+                            {
+                                "$sum": {
+                                    "$map": {
+                                        "input": "$assign",
+                                        "as": "a",
+                                        "in": {
+                                            "$cond": [
+                                                { "$and": [ { "$ne": ["$$a.duration", None] }, { "$ne": ["$$a.duration", 0] } ] },
+                                                "$$a.duration",
+                                                0
+                                            ]
+                                        }
                                     }
                                 }
-                            }},
+                            },
                             1000
                         ]
                     }
@@ -195,7 +205,7 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
             },
             {
                 "$project": {
-                    'id':1,
+                    "id": 1,
                     "title": 1,
                     "total_time": 1,
                     "assign_time": 1
@@ -230,36 +240,55 @@ def get_issues_info(request:dict, conn = Depends(get_connection)):
     issue_id = request.get('issue_id')
     try:
         aggregate = [
-            
             {
-            '$match':{
-                'id':issue_id
-            }
+                "$match": {
+                    "id": issue_id
+                }
             },
-            {'$lookup': {
-                            'from': 'projects',
-                            'localField': 'project_id',
-                            'foreignField': 'id',
-                            'as': 'result'
-                        }},
-            {'$unwind':'$result'},
-            {'$project':{
-                '_id':0,
-                    'url':'$url',
-                    'name':'$title',
-                    'project_url':'$result.web_url',
-                'project_name':'$result.name',
-                'reopen_count': '$Re-Open',
-                    'created_at':'$created_at'
-            }}
-
+            {
+                "$lookup": {
+                    "from": "projects",
+                    "localField": "project_id",
+                    "foreignField": "id",
+                    "as": "result"
+                }
+            },
+            {
+                "$unwind": "$result"
+            },
+            {
+                "$addFields": {
+                    "ready_for_release_value": {
+                        "$ifNull": ["$ready_for_release", False]
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "url": 1,
+                    "name": "$title",
+                    "project_url": "$result.web_url",
+                    "project_name": "$result.name",
+                    "project_subgroup": "$result.subgroup_name",
+                    "reopen_count": "$Re-Open",
+                    "created_at": 1,
+                    "ready_for_release": "$ready_for_release_value"
+                }
+            }
         ]
+
 
         issue_id = request.get("issue_id")
         issues = conn['issues']
         curr_issue = issues.aggregate(aggregate)
         
         data = list(curr_issue)
+
+        # add subgroup as subgroup/project_name
+        for issue in data:
+            issue['project_name'] = f"{issue['project_subgroup']}/{issue['project_name']}"
+            issue.pop('project_subgroup', None)
         
         return {'status':True, 'data':data, 'message':'Successfully got back issues'}
     except Exception as e:
@@ -354,3 +383,113 @@ def project_issues_report(request: dict, conn=Depends(get_connection)):
 
     result = list(response)
     return result
+
+
+@router.post("/get_all_issues", tags=['issue'])
+def get_all_issues(conn=Depends(get_connection)):
+    # get all issues ids with work
+    user_collection = conn['users']
+
+
+    aggregation = [
+        { '$unwind': '$work' },
+        { '$match': { 'work.end_time': { '$ne': None } }},
+        { '$group': {
+            '_id': '$work.issue_id',
+        }},
+        { '$lookup': {
+            'from': 'issues',
+            'localField': '_id',
+            'foreignField': 'id',
+            'as': 'issue_info'
+        }},
+        { '$unwind': '$issue_info' },
+        { '$lookup': {
+            'from': 'projects',
+            'localField': 'issue_info.project_id',
+            'foreignField': 'id',
+            'as': 'project_info'
+        }},
+        { '$unwind': '$project_info' },
+        { '$project': {
+            '_id': 0,
+            'issue_id': '$_id',
+            'title': '$issue_info.title',
+            'issue_url': '$issue_info.url',
+            'project_name': '$project_info.name',
+            'project_url': '$project_info.web_url',
+            
+            'subgroup_name': '$project_info.subgroup_name',
+        }}
+    ]
+
+    response = user_collection.aggregate(aggregation)
+    result = list(response)
+
+    result = sorted(result, key=lambda x: x['title'])
+
+
+    return {
+        'status': True,
+        'data': result,
+        'message': 'Successfully returned all issues'
+    }
+
+
+@router.post("/get_subgroup_link", tags=['issue'])
+def get_subgroup_link(request: dict, conn=Depends(get_connection)):
+    subgroup_name = request.get('subgroup_name')
+    
+    # get subgroup by gitlab rest api
+
+    import requests
+    import os
+
+    token = os.getenv('GITLAB_KEY')
+    headers = {
+        'Private-Token': token
+    }
+    
+    def find_subgroup(subgroup_name, group_id):
+        url = f'https://code.ethicsinfotech.in/api/v4/groups/{group_id}/subgroups'
+        response = requests.get(url, headers=headers)
+        
+        # Check for successful response
+        if response.status_code != 200:
+            return None
+        
+        subgroups = response.json()
+        
+        # Ensure subgroups is a list
+        if not isinstance(subgroups, list):
+            return None
+        for subgroup in subgroups:
+            # Ensure each item is a dictionary with expected keys
+            if isinstance(subgroup, dict) and 'name' in subgroup:
+                if subgroup['name'] == subgroup_name:
+                    return subgroup
+                else:
+                    # Recursively search within subgroups
+                    nested_subgroup = find_subgroup(subgroup_name, subgroup['id'])
+                    if nested_subgroup:
+                        return nested_subgroup
+        
+        return None
+
+    
+    group_id = 39
+    subgroup = find_subgroup(subgroup_name, group_id)
+    subgroup_link = subgroup.get('web_url')
+    if subgroup:
+        return {
+            'status': True,
+            'data': subgroup_link,
+            'message': 'Successfully returned subgroup'
+        }
+    else:
+        return {
+            'status': False,
+            'data': {},
+            'message': 'Subgroup not found'
+        }
+    

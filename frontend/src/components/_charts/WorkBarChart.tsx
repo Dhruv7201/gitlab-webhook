@@ -55,6 +55,7 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
     api
       .post(`/work_duration_by_task`, {
         project_id: selectedProjectId,
+        dateRange,
       })
       .then((response) => {
         const data = response.data;
@@ -67,7 +68,7 @@ const WorkBarChart: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
       .catch(() => {
         Notification({ message: "Problem fetching users", type: "error" });
       });
-  }, [selectedProjectId]);
+  }, [selectedProjectId, dateRange]);
 
   const renderTooltipContent = (props: any) => {
     if (!props.active || !props.payload || props.payload.length === 0)

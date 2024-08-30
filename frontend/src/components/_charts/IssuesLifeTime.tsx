@@ -114,9 +114,15 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
     };
 
     fetchMilestones();
+    if (localStorage.getItem("selectedMilestone") === null) {
+      localStorage.setItem("selectedMilestone", "0");
+    }
   }, []);
 
   React.useEffect(() => {
+    setSelectedMilestone(
+      parseInt(localStorage.getItem("selectedMilestone") || "0")
+    );
     api
       .post(`/issue_lifetime`, {
         project_id: selectedProjectId,
@@ -176,6 +182,11 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
     navigate(`/issue/${issueId}`);
   };
 
+  const handleMilestoneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedMilestone(parseInt(e.target.value));
+    localStorage.setItem("selectedMilestone", e.target.value);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -184,7 +195,7 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
           <div className="flex items-center gap-4">
             <select
               className="p-3 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring focus:ring-blue-500 focus:border-blue-500 transition duration-200 ease-in-out hover:cursor-pointer min-w-[215px]"
-              onChange={(e) => setSelectedMilestone(Number(e.target.value))}
+              onChange={(e) => handleMilestoneChange(e)}
               value={selectedMilestone}
             >
               <option value={0} className="text-gray-500 bg-gray-100">

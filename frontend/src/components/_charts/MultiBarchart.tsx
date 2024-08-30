@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import api from "@/utils/api";
 import {
@@ -77,16 +77,22 @@ export function MultiBarChart({ project_id, dateRange }: any) {
     };
 
     fetchMilestones();
+    if (localStorage.getItem("selectedMilestone") === null) {
+      localStorage.setItem("selectedMilestone", "0");
+    }
   }, []);
 
   React.useEffect(() => {
+    setSelectedMilestone(
+      parseInt(localStorage.getItem("selectedMilestone") || "0")
+    );
     if (selectedMilestone !== null) {
       const fetchChartData = async () => {
         try {
           const response = await api.post("/milestone_issues", {
             project_id: project_id,
-            all_milestones: milestones.map((milestone) => milestone.id),
             milestone_id: selectedMilestone,
+            dateRange,
           });
           const { data } = response;
 
@@ -102,7 +108,18 @@ export function MultiBarChart({ project_id, dateRange }: any) {
 
       fetchChartData();
     }
-  }, [selectedMilestone, project_id]);
+  }, [selectedMilestone, project_id, dateRange]);
+
+  const handleMilestoneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedMilestone(parseInt(e.target.value));
+    localStorage.setItem("selectedMilestone", e.target.value);
+  };
+
+  useEffect(() => {
+    setSelectedMilestone(
+      parseInt(localStorage.getItem("selectedMilestone") || "0")
+    );
+  }, [localStorage.getItem("selectedMilestone")]);
 
   return (
     <Card>
@@ -111,7 +128,8 @@ export function MultiBarChart({ project_id, dateRange }: any) {
           <CardTitle>Time Spent on Milestones</CardTitle>
           <select
             className="p-3 text-sm rounded-lg border border-gray-300 shadow-sm focus:ring focus:ring-blue-500 focus:border-blue-500 transition duration-200 ease-in-out"
-            onChange={(e) => setSelectedMilestone(Number(e.target.value))}
+            onChange={(e) => handleMilestoneChange(e)}
+            value={selectedMilestone}
           >
             <option key={0} value={0} className="text-gray-500 bg-gray-100">
               Select Milestone

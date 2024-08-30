@@ -132,18 +132,33 @@ async def get_milestones(request: dict, db=Depends(get_connection)):
 
 @router.post("/active_milestones")
 async def get_active_milestones(db=Depends(get_connection)):
-    # Get all active milestones from the database
-    await read_milestones(db)
-    milestone_collection = db["milestones"]
-    
-    # Fetch active milestones asynchronously
-    active_milestones = []
-    async for milestone in milestone_collection.find({"state": "active"}):
-        milestone.pop('_id', None)
-        active_milestones.append(milestone)
+    try:
+        # Get all active milestones from the database
+        await read_milestones(db)
+        milestone_collection = db["milestones"]
+        
+        # Fetch active milestones asynchronously
+        active_milestones = []
+        async for milestone in milestone_collection.find({"state": "active"}):
+            milestone.pop('_id', None)
+            active_milestones.append(milestone)
+            # check date of milestone if exceeded
+            milestone_due_date = datetime.strptime(milestone['due_date'], "%Y-%m-%d")
+            today = datetime.now()
+            today = today.replace(hour=0, minute=0, second=0, microsecond=0)
+            if milestone_due_date < today:
+                milestone['title'] = milestone['title'] + " (Expired)"
+            else:
+                milestone['status'] = 'Active'
 
-    return {
-        "status": True,
-        "data": active_milestones,
-        "message": "Active milestones fetched successfully"
-    }
+        return {
+            "status": True,
+            "data": active_milestones,
+            "message": "Active milestones fetched successfully"
+        }
+    except Exception as e:
+        return {
+            "status": False,
+            "data": list([]),
+            "message": str(e)
+        }

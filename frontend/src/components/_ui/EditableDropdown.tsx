@@ -56,7 +56,10 @@ const EditableDropdown: React.FC<Props> = ({
         }
       })
       .catch((_error) => {
-        Notification({ message: "Problem fetching projects", type: "error" });
+        Notification({
+          message: "You are not authorized",
+          type: "info",
+        });
       });
   }, [setSelectedProjectId]);
 

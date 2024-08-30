@@ -9,6 +9,7 @@ import Milestones from "./pages/Milestones";
 import Layout from "./layout/Layout";
 import UsersPage from "./pages/UsersPage";
 import Users from "./pages/Users";
+import Issues from "./pages/Issues";
 
 function App() {
   return (
@@ -69,6 +70,14 @@ function App() {
         element={
           <Layout>
             <Users />
+          </Layout>
+        }
+      />
+      <Route
+        path="/issues"
+        element={
+          <Layout>
+            <Issues />
           </Layout>
         }
       />
