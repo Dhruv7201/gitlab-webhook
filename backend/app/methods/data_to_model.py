@@ -162,6 +162,7 @@ def issue(payload: dict, db):
 
 def work_item(payload: dict, db):
     try:
+        payload['type'] = 'task'
         issue(payload, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Work item processing failed: {str(e)}")
