@@ -157,8 +157,21 @@ def issue(payload: dict, db):
                 reOpenIncrement(payload, db)
                 insertReOpen(payload, db)
 
-    if 'issue_type' in issue_object and issue_object['issue_type'] == 'task':
-        bind_child_task_to_issue(issue_object, db)
+    if issue_type == 'task':
+        # Your GitLab instance URL and Personal Access Token (PAT)
+        gitlab_url = "https://code.ethicsinfotech.in/"
+        private_token = os.getenv('GITLAB_KEY')
+        headers = {
+            "Private-Token": private_token
+        }
+        task_id = payload['object_attributes']['iid']
+        project_id = payload['object_attributes']['project_id']
+        print(task_id)
+        print(project_id)
+        task_url = f"{gitlab_url}/api/v4/projects/{project_id}/issues/{task_id}/notes"
+        response = requests.get(task_url, headers=headers)
+        task = response.json()
+        bind_child_task_to_issue(task, db)
 
 def work_item(payload: dict, db):
     try:
@@ -166,3 +179,4 @@ def work_item(payload: dict, db):
         issue(payload, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Work item processing failed: {str(e)}")
+
