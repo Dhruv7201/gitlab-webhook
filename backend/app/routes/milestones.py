@@ -8,7 +8,8 @@ router = APIRouter()
 
 async def get_connection() -> AsyncIOMotorClient:
     # Replace with your MongoDB connection details
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    mongo_url = os.getenv("DATABASE_URL")
+    client = AsyncIOMotorClient(mongo_url)
     return client['GitlabReports']
 
 @router.get("/milestones")
@@ -162,3 +163,4 @@ async def get_active_milestones(db=Depends(get_connection)):
             "data": list([]),
             "message": str(e)
         }
+
