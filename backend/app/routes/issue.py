@@ -339,52 +339,6 @@ def get_user_total_duration_time(request: dict, conn=Depends(get_connection)):
     }
 
 
-@router.post("/project_issues_report", tags=['issue'])
-def project_issues_report(request: dict, conn=Depends(get_connection)):
-    project_id = request.get('project_id')
-    issues_collection = conn['issues']
-    users_collection = conn['users']
-
-    aggregation = [
-    { '$match': { 'project_id': project_id }},
-    { '$lookup': {
-        'from': 'users',
-        'localField': 'assign.user_id',
-        'foreignField': 'id',
-        'as': 'assigned_users'
-    }},
-    { '$unwind': '$assign' },
-    { '$lookup': {
-        'from': 'users',
-        'localField': 'assign.user_id',
-        'foreignField': 'id',
-        'as': 'assign_user'
-    }},
-    { '$unwind': '$assign_user' },
-    { '$group': {
-        '_id': { 'issue_id': '$id', 'title': '$title' },
-        'total_assigned_time': { '$sum': '$assign.duration' },
-    }},
-    { '$project': {
-        '_id': 0,
-        'issue_id': '$_id.issue_id',
-        'title': '$_id.title',
-        'total_assigned_time': 1,
-        'total_work_time': 1,
-        'total_doing_time': 1,
-        'total_testing_time': 1,
-        'total_documentation_time': 1,
-        'assignee_names': 1
-    }}
-]
-
-
-    response = issues_collection.aggregate(aggregation)
-
-    result = list(response)
-    return result
-
-
 @router.post("/get_all_issues", tags=['issue'])
 def get_all_issues(conn=Depends(get_connection)):
     # get all issues ids with work
