@@ -1,16 +1,27 @@
 import {
   ArrowDown,
   LayoutDashboard,
-  Milestone,
   Menu,
   Users,
   Filter,
   ListChecks,
+  Settings,
+  LogOut,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 
+const getLevel = () => {
+  const jwt = localStorage.getItem("token");
+  if (!jwt) return false;
+  const jwtData = jwt.split(".")[1];
+  const decodedJwtJsonData = window.atob(jwtData);
+  const decodedJwtData = JSON.parse(decodedJwtJsonData);
+  return decodedJwtData.level;
+};
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
+  const level = getLevel();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -99,19 +110,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     } overflow-hidden`}
                   >
                     <ul className="space-y-1">
-                      {/* <li>
-                        <NavLink
-                          to="/milestones"
-                          className={({ isActive }) =>
-                            `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
-                              isActive ? "bg-gray-400" : "hover:bg-gray-700"
-                            }`
-                          }
-                        >
-                          <Milestone size={24} />
-                          <span>Milestones</span>
-                        </NavLink>
-                      </li> */}
                       <li>
                         <NavLink
                           to="/users"
@@ -136,6 +134,31 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         >
                           <ListChecks />
                           <span> Issues</span>
+                        </NavLink>
+                      </li>
+                      {level === "admin" && (
+                        <li>
+                          <NavLink
+                            to="/settings"
+                            className={({ isActive }) =>
+                              `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
+                                isActive ? "bg-gray-400" : "hover:bg-gray-700"
+                              }`
+                            }
+                          >
+                            <Settings />
+                            <span>Settings</span>
+                          </NavLink>
+                        </li>
+                      )}
+                      <li>
+                        <NavLink
+                          onClick={() => localStorage.removeItem("token")}
+                          to="/login"
+                          className="py-3 px-4 rounded-md flex items-center space-x-3 text-lg hover:bg-gray-700"
+                        >
+                          <LogOut />
+                          <span>Logout</span>
                         </NavLink>
                       </li>
                     </ul>

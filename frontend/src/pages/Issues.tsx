@@ -1,7 +1,9 @@
 import Notification from "@/Notification";
 import api from "@/utils/api";
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { validateToken } from "@/utils/api";
 
 type Issue = {
   issue_id: number;
@@ -24,6 +26,20 @@ const Loader = () => (
   </div>
 );
 const Issues = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      validateToken(localStorage.getItem("token") as string).then((res) => {
+        if (!res) {
+          localStorage.removeItem("token");
+
+          navigate("/login");
+        }
+      });
+    } else {
+      navigate("/login");
+    }
+  }, [navigate]);
   const [issues, setIssues] = React.useState<Issue[]>([]);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [loading, setLoading] = React.useState<boolean>(false);

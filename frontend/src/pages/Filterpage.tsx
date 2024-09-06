@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import EditableDropdown from "../components/_ui/EditableDropdown";
 import IssueTable from "@/components/_ui/IssueTable";
+import { useNavigate } from "react-router-dom";
+import { validateToken } from "@/utils/api";
 
 const sevenDaysAgo = () => {
   const date = new Date();
@@ -9,6 +11,20 @@ const sevenDaysAgo = () => {
 };
 
 const FilterPage = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      validateToken(localStorage.getItem("token") as string).then((res) => {
+        if (!res) {
+          localStorage.removeItem("token");
+
+          navigate("/login");
+        }
+      });
+    } else {
+      navigate("/login");
+    }
+  }, [navigate]);
   const [selectedProjectId, setSelectedProjectId] = React.useState(0);
   const [lableName, setLableName] = React.useState("");
   const [date, setDate] = React.useState({

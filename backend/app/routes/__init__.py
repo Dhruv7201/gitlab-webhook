@@ -5,6 +5,8 @@ from app.routes.work import router as work_router
 from app.routes.issue import router as issue_router
 from app.routes.milestones import router as milestone_router
 from app.routes.filter import router as filter_routes
+from app.routes.login import router as login_router
+from app.routes.settings import router as settings_router
 
 
 def register_routers(app):
@@ -14,3 +16,6 @@ def register_routers(app):
     app.include_router(issue_router)
     app.include_router(milestone_router)
     app.include_router(filter_routes)
+    app.include_router(login_router)
+    app.include_router(settings_router)
+    

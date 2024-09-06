@@ -5,16 +5,20 @@ import ChartsPage from "./pages/ChartsPage";
 import NotFound from "./pages/NotFound";
 import IssueDetails from "./pages/IssueDetails";
 import FilterPage from "./pages/Filterpage";
-import Milestones from "./pages/Milestones";
 import Layout from "./layout/Layout";
 import UsersPage from "./pages/UsersPage";
 import Users from "./pages/Users";
 import Issues from "./pages/Issues";
+import Login from "./pages/Login";
+import LabelSettings from "./pages/LabelSettings";
+import Settings from "./pages/Settings";
+import UserSettings from "./pages/UserSettings";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<UserProjectData />} />
+      <Route path="/login" element={<Login />} />
       <Route
         path="/dashboard"
         element={
@@ -47,14 +51,6 @@ function App() {
           </Layout>
         }
       />
-      <Route
-        path="/milestones"
-        element={
-          <Layout>
-            <Milestones />
-          </Layout>
-        }
-      />
 
       <Route
         path="/user/:userId"
@@ -78,6 +74,30 @@ function App() {
         element={
           <Layout>
             <Issues />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <Layout>
+            <Settings />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings/label-settings"
+        element={
+          <Layout>
+            <LabelSettings />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings/user-settings"
+        element={
+          <Layout>
+            <UserSettings />
           </Layout>
         }
       />

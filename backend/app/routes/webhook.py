@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.db import get_connection
+from app.utils.date_utils import convert_to_ISC
 from app.methods.data_entry import insert_logs, push_milestone, push_assign
 from app.methods.data_to_model import employee, project, issue, insert_work_in_user, work_item, insert_work_in_issue
 
@@ -30,7 +31,7 @@ async def webhook(request: dict, db=Depends(get_connection)):
                 try:
                     curr_milestone_id = changes['milestone_id']['current']
                     prev_milestone_id = changes['milestone_id']['previous']
-                    updated_at = changes['updated_at']['current']
+                    updated_at = convert_to_ISC(changes['updated_at']['current'])
                     push_milestone(issue_object['id'], curr_milestone_id, prev_milestone_id, updated_at, db)
                 except Exception as e:
                     raise HTTPException(status_code=500, detail=f"Milestone update failed: {str(e)}")

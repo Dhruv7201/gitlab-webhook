@@ -6,8 +6,24 @@ import IssueFooter from "@/components/_ui/IssueFooter";
 import { Copy, CopyCheck, ExternalLink } from "lucide-react";
 import Notification from "@/Notification";
 import { Button } from "@/components/_ui/button";
+import { useNavigate } from "react-router-dom";
+import { validateToken } from "@/utils/api";
 
 const IssueDetails = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      validateToken(localStorage.getItem("token") as string).then((res) => {
+        if (!res) {
+          localStorage.removeItem("token");
+
+          navigate("/login");
+        }
+      });
+    } else {
+      navigate("/login");
+    }
+  }, [navigate]);
   const { issueId } = useParams();
   const currIssueId = Number(issueId);
   const [issueInfo, setIssueInfo] = useState<any>(null);

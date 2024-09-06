@@ -6,7 +6,7 @@ import os
 from fastapi import HTTPException
 
 labels_list = {'Doing': 0, 'Testing': 1, 'Documentation': 2}
-issue_labels_list = {'Documentation': 0, 'DocReady': 1, 'Development': 2, 'Doing': 3, 'QA': 4, 'Testing': 5, 'RFR': 6, 
+issue_labels_list = {'Documentation': 0, 'DocReady': 1, 'Development': 2, 'Doing': 3, 'QA': 4, 'Testing': 5, 'Ready for release': 6, 
                      'ReleasePlan': 7, 'Regression': 8, 'ReadyForProd': 9, 'LivePublishing': 10, 'LivePublished': 11, 
                      'Smoke': 12, 'SmokeDone': 13, 'OnHold': 14, 'Re-Open': 15}
 reOpen = 'Re-Open'
@@ -179,4 +179,3 @@ def work_item(payload: dict, db):
         issue(payload, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Work item processing failed: {str(e)}")
-

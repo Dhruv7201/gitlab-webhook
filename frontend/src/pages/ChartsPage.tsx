@@ -13,6 +13,8 @@ import { MultiBarChart } from "@/components/_charts/MultiBarchart";
 import IssuesLifeTime from "@/components/_charts/IssuesLifeTime";
 import { Button } from "@/components/_ui/button";
 import { MonitorDown } from "lucide-react";
+import { validateToken } from "@/utils/api";
+import { useNavigate } from "react-router-dom";
 
 const monthAgo = () => {
   const date = new Date();
@@ -21,6 +23,20 @@ const monthAgo = () => {
 };
 
 const ChartsPage = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      validateToken(localStorage.getItem("token") as string).then((res) => {
+        if (!res) {
+          localStorage.removeItem("token");
+
+          navigate("/login");
+        }
+      });
+    } else {
+      navigate("/login");
+    }
+  }, [navigate]);
   const [selectedProjectId, setSelectedProjectId] = React.useState(0);
   const [date, setDate] = React.useState<DateRange>({
     from: monthAgo(),

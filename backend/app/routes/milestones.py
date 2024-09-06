@@ -163,4 +163,3 @@ async def get_active_milestones(db=Depends(get_connection)):
             "data": list([]),
             "message": str(e)
         }
-
