@@ -2,6 +2,7 @@ import React from "react";
 import api from "@/utils/api";
 import { useState, useEffect } from "react";
 import Notification from "../Notification";
+import { useNavigate } from "react-router-dom";
 
 type User = {
   id: string;
@@ -25,6 +26,8 @@ type Data = {
 };
 
 const UserProjectData = () => {
+  const navigate = useNavigate();
+
   const [users, setUsers] = useState<User[]>([]);
   const [workData, setWorkData] = useState<Project | null>(null);
 
@@ -47,6 +50,7 @@ const UserProjectData = () => {
   };
 
   useEffect(() => {
+    navigate("/dashboard");
     api
       .post("/users")
       .then((response) => {
@@ -123,3 +127,4 @@ const UserProjectData = () => {
 };
 
 export default UserProjectData;
+
