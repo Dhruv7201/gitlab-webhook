@@ -358,7 +358,7 @@ async def get_user_time_waste(request: dict, conn = Depends(get_connection)):
             },
             {
                 '$addFields': {
-                    'areFieldsEqual': { '$eq': ['$assign_issues.issues_id', '$work.issue_id'] }
+                    'areFieldsEqual': {'$eq': ['$assign_issues.issue_id', '$work.issue_id']}
                 }
             },
             {
@@ -370,10 +370,10 @@ async def get_user_time_waste(request: dict, conn = Depends(get_connection)):
                 '$match': {
                     '$expr': {
                         '$and': [
-                            { '$lt': ['$assign_issues.start_time', '$work.start_time'] },
-                            { '$or': [
-                                { '$eq': ['$assign_issues.end_time', None] },
-                                { '$gt': ['$assign_issues.end_time', '$work.end_time'] }
+                            {'$lt': ['$assign_issues.start_time', '$work.start_time']},
+                            {'$or': [
+                                {'$eq': ['$assign_issues.end_time', None]},
+                                {'$gt': ['$assign_issues.end_time', '$work.end_time']}
                             ]}
                         ]
                     }
@@ -382,10 +382,10 @@ async def get_user_time_waste(request: dict, conn = Depends(get_connection)):
             {
                 '$match': {
                     '$and': [
-                        { 'assign_issues.start_time': { '$gte': start_date } },
-                        { 'assign_issues.end_time': { '$lte': end_date } },
-                        { 'work.start_time': { '$gte': start_date } },
-                        { 'work.end_time': { '$lte': end_date } }
+                        {'assign_issues.start_time': {'$gte': start_date}},
+                        {'assign_issues.end_time': {'$lte': end_date}},
+                        {'work.start_time': {'$gte': start_date}},
+                        {'work.end_time': {'$lte': end_date}}
                     ]
                 }
             },
@@ -393,7 +393,7 @@ async def get_user_time_waste(request: dict, conn = Depends(get_connection)):
                 '$project': {
                     'name': 1,
                     'id': '$id',
-                    'time_waste': {
+                    'idle_time': {
                         '$subtract': ['$work.start_time', '$assign_issues.start_time']
                     }
                 }
@@ -402,12 +402,11 @@ async def get_user_time_waste(request: dict, conn = Depends(get_connection)):
                 '$group': {
                     '_id': '$name',
                     'id': {'$first': '$id'},
-                    'total_time_waste': { '$sum': '$time_waste' }
+                    'total_time_waste': {'$sum': '$idle_time'}
                 }
             },
             {
-                "$sort": {"total_time_waste": 1}
-
+                '$sort': {'total_time_waste': 1}
             },
             {
                 '$project': {
@@ -635,3 +634,4 @@ def get_user_all_info(request: dict, conn=Depends(get_connection)):
         return {'status': True, 'data': result, 'message': 'Work and duration for user got Successfully'}
     except Exception as e:
         return {'status': False, 'data': [], 'message': str(e)}
+
