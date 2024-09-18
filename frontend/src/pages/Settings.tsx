@@ -51,6 +51,19 @@ const Settings = () => {
               View
             </Button>
           </div>
+
+          <div className="bg-white shadow-lg rounded-lg p-6 flex flex-col justify-between space-y-4">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Repo Settings</h2>
+              <p className="text-gray-600">Manage repository settings here.</p>
+            </div>
+            <Button
+              onClick={() => navigate("/settings/repo-settings")}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
+            >
+              View
+            </Button>
+          </div>
         </div>
       </div>
     </>

@@ -142,7 +142,7 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
         date_range = formate_date_range(date_range)
         start_date = date_range.get("from")
         end_date = date_range.get("to")
-        user_collection = conn["issues"]
+        issue_collection = conn["issues"]
 
         # Build the match criteria dynamically
         match_criteria = {}
@@ -214,7 +214,7 @@ async def milestone_issues(request: dict, conn = Depends(get_connection)):
         ]
 
         # Run the aggregation pipeline
-        result = user_collection.aggregate(aggregate)
+        result = issue_collection.aggregate(aggregate)
         data = list(result)
 
         # Convert _id to string for response
@@ -341,47 +341,46 @@ def get_user_total_duration_time(request: dict, conn=Depends(get_connection)):
 
 @router.post("/get_all_issues", tags=['issue'])
 def get_all_issues(conn=Depends(get_connection)):
-    # get all issues ids with work
-    user_collection = conn['users']
-
+    # Get all issues ids with work
+    issue_collection = conn['issues']
 
     aggregation = [
-        { '$unwind': '$work' },
-        { '$match': { 'work.end_time': { '$ne': None } }},
-        { '$group': {
-            '_id': '$work.issue_id',
-        }},
-        { '$lookup': {
-            'from': 'issues',
-            'localField': '_id',
-            'foreignField': 'id',
-            'as': 'issue_info'
-        }},
-        { '$unwind': '$issue_info' },
-        { '$lookup': {
-            'from': 'projects',
-            'localField': 'issue_info.project_id',
-            'foreignField': 'id',
-            'as': 'project_info'
-        }},
-        { '$unwind': '$project_info' },
-        { '$project': {
-            '_id': 0,
-            'issue_id': '$_id',
-            'title': '$issue_info.title',
-            'issue_url': '$issue_info.url',
-            'project_name': '$project_info.name',
-            'project_url': '$project_info.web_url',
-            
-            'subgroup_name': '$project_info.subgroup_name',
-        }}
+        { 
+            '$match': { 
+                'ready_for_release': { '$exists': False } 
+            } 
+        },
+        { 
+            '$lookup': {
+                'from': 'projects',
+                'localField': 'project_id',
+                'foreignField': 'id',
+                'as': 'project_info'
+            } 
+        },
+        { 
+            '$unwind': '$project_info' 
+        },
+        { 
+            '$project': {
+                '_id': 0,
+                'issue_id': '$id',
+                'title': '$title',
+                'issue_url': '$url',
+                'project_name': '$project_info.name',
+                'project_url': '$project_info.web_url',
+                'subgroup_name': '$project_info.subgroup_name'
+            } 
+        }
     ]
 
-    response = user_collection.aggregate(aggregation)
+    response = issue_collection.aggregate(aggregation)
     result = list(response)
-
+    # pop object id
+    for issue in result:
+        print(issue)
+        issue.pop('_id', None)
     result = sorted(result, key=lambda x: x['title'])
-
 
     return {
         'status': True,

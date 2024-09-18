@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import LabelSettings from "./pages/LabelSettings";
 import Settings from "./pages/Settings";
 import UserSettings from "./pages/UserSettings";
+import RepoSettings from "./pages/RepoSettings";
 
 function App() {
   return (
@@ -98,6 +99,14 @@ function App() {
         element={
           <Layout>
             <UserSettings />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings/repo-settings"
+        element={
+          <Layout>
+            <RepoSettings />
           </Layout>
         }
       />

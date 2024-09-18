@@ -27,14 +27,6 @@ const FilterPage = () => {
   }, [navigate]);
   const [selectedProjectId, setSelectedProjectId] = React.useState(0);
   const [lableName, setLableName] = React.useState("");
-  const [date, setDate] = React.useState({
-    from: sevenDaysAgo(),
-    to: new Date(),
-  });
-
-  function handleClick(filter_name: string): any {
-    setLableName(filter_name);
-  }
 
   return (
     <>

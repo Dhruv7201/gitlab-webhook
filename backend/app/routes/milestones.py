@@ -151,7 +151,8 @@ async def get_active_milestones(db=Depends(get_connection)):
                 milestone['title'] = milestone['title'] + " (Expired)"
             else:
                 milestone['status'] = 'Active'
-
+        # remove duplicate milestone
+        active_milestones = [dict(t) for t in {tuple(d.items()) for d in active_milestones}]
         return {
             "status": True,
             "data": active_milestones,

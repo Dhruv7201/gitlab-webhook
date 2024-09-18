@@ -27,4 +27,3 @@ const Notification = ({ message, type }: NotificationProps) => {
 };
 
 export default Notification;
-

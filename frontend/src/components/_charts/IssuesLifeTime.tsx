@@ -48,16 +48,16 @@ type MilestoneData = {
 };
 
 const getColor = (label: string) => {
-  const colors = [
-    "hsl(var(--chart-1))",
-    "#ed9121",
-    "#e6e6fa",
-    "hsl(var(--chart-4))",
-  ];
-  if (label === "Development") return colors[2];
-  if (label === "Testing") return colors[1];
-  if (label === "Doing") return colors[0];
+  // lightgreen for doing yellow for testing and gray for documentation
+  const colors: { [key: string]: string } = {
+    Documentation: "#d3d3d3",
+    Testing: "#ffd700",
+    Doing: "hsl(var(--chart-1))",
+  };
+
+  return colors[label] || "#d3d3d3"; // Fallback color in hex
 };
+
 
 const CustomTooltip = ({ payload, label, chartConfig }: any) => {
   if (!payload || payload.length === 0) return null;

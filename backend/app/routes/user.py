@@ -634,4 +634,3 @@ def get_user_all_info(request: dict, conn=Depends(get_connection)):
         return {'status': True, 'data': result, 'message': 'Work and duration for user got Successfully'}
     except Exception as e:
         return {'status': False, 'data': [], 'message': str(e)}
-

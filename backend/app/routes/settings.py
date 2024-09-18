@@ -136,3 +136,84 @@ async def get_suggestions(db=Depends(get_connection)):
         raise HTTPException(status_code=404, detail="No suggestions found")
     suggestions = list(suggestions)
     return {"status": True, "data": suggestions, "message": "Suggestions fetched successfully"}
+
+import os
+import requests
+from fastapi import APIRouter, Depends, HTTPException
+
+router = APIRouter()
+
+def get_repo_list(group_id):
+    gitlab_url = "https://code.ethicsinfotech.in/"
+    private_token = os.getenv("GITLAB_KEY")
+    headers = {
+        "Private-Token": private_token
+    }
+    response_repos = []
+    page = 1
+    per_page = 100
+    while True:
+        repos_url = f"{gitlab_url}/api/v4/groups/{group_id}/projects?per_page={per_page}&page={page}"
+        repos_response = requests.get(repos_url, headers=headers)
+
+        if repos_response.status_code != 200:
+            break
+
+        current_page_repos = repos_response.json()
+        if not current_page_repos:
+            break
+
+        response_repos.extend(current_page_repos)
+        page += 1
+    return response_repos
+
+@router.post("/repo-settings", tags=["settings"])
+async def repo_settings(request: dict, db=Depends(get_connection)):
+    try:
+        group_id = 39 if not request.get("subgroup") else request.get("subgroup")
+        gitlab_url = "https://code.ethicsinfotech.in/"
+        private_token = os.getenv("GITLAB_KEY")
+
+        headers = {
+            "Private-Token": private_token
+        }
+
+        response_subgroups = []
+        projects = {}
+        page = 1
+        per_page = 100
+        
+        # Fetch subgroups and projects simultaneously
+        while True:
+            subgroups_url = f"{gitlab_url}/api/v4/groups/{group_id}/subgroups?per_page={per_page}&page={page}"
+            subgroups_response = requests.get(subgroups_url, headers=headers)
+
+            if subgroups_response.status_code != 200:
+                break
+
+            current_page_subgroups = subgroups_response.json()
+            if not current_page_subgroups:
+                break
+
+            response_subgroups.extend(current_page_subgroups)
+            page += 1
+        
+        # Check if there are no subgroups, fetch projects instead
+        if not response_subgroups:
+            response_repos = get_repo_list(group_id)
+            for repo in response_repos:
+                projects[repo['id']] = {"name": repo['name'], "subgroup": False}
+            return {"status": True, "data": projects, "message": "Projects fetched successfully"}
+
+        subgroup = {}
+        for sub in response_subgroups:
+            # Check if the subgroup has subgroups (no need for extra API call)
+            if sub['parent_id']:
+                subgroup[sub['id']] = {"name": sub['name'], "subgroup": True}
+            else:
+                subgroup[sub['id']] = {"name": sub['name'], "subgroup": False}
+
+        return {"status": True, "data": subgroup, "message": "Subgroups fetched successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
