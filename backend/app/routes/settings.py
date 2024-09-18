@@ -137,12 +137,6 @@ async def get_suggestions(db=Depends(get_connection)):
     suggestions = list(suggestions)
     return {"status": True, "data": suggestions, "message": "Suggestions fetched successfully"}
 
-import os
-import requests
-from fastapi import APIRouter, Depends, HTTPException
-
-router = APIRouter()
-
 def get_repo_list(group_id):
     gitlab_url = "https://code.ethicsinfotech.in/"
     private_token = os.getenv("GITLAB_KEY")

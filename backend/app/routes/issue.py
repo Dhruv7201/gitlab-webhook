@@ -378,7 +378,6 @@ def get_all_issues(conn=Depends(get_connection)):
     result = list(response)
     # pop object id
     for issue in result:
-        print(issue)
         issue.pop('_id', None)
     result = sorted(result, key=lambda x: x['title'])
 

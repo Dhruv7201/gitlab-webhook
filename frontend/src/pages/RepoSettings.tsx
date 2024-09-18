@@ -8,12 +8,18 @@ type RepoList = {
   id: string;
   name: string;
   subgroup: boolean;
-  subgroups?: RepoList[]; // Optional subgroups for nested repos/projects
+  subgroups?: RepoList[];
+};
+
+type RepoResponse = {
+  [key: string]: RepoList;
 };
 
 const RepoSettings = () => {
   const [repoList, setRepoList] = useState<RepoList[]>([]);
-  const [expandedRepos, setExpandedRepos] = useState<{ [key: string]: boolean }>({});
+  const [expandedRepos, setExpandedRepos] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
@@ -30,15 +36,16 @@ const RepoSettings = () => {
       navigate("/login");
     }
   }, [navigate]);
-
-  // Fetch the top-level repo settings on component mount
   useEffect(() => {
     const fetchRepoSettings = async () => {
       try {
         setLoading(true);
-        const response = await api.post("/repo-settings", {});
+        const response = await api.post<{ data: RepoResponse }>(
+          "/repo-settings",
+          {}
+        );
         const data = response.data.data;
-        setRepoList(Object.entries(data).map(([id, repo]) => ({ id, ...repo })));
+        setRepoList(Object.entries(data).map(([id, repo]) => ({ ...repo })));
         setLoading(false);
       } catch (error) {
         console.error(error);
@@ -57,16 +64,21 @@ const RepoSettings = () => {
     } else {
       // If it's not expanded, fetch subgroups/projects
       try {
-        const response = await api.post("/repo-settings", { subgroup: repoId });
+        const response = await api.post<{ data: RepoResponse }>(
+          "/repo-settings",
+          {
+            repoId,
+          }
+        );
         const data = response.data.data;
-        const subgroupsOrProjects = Object.entries(data).map(([id, repo]) => ({ id, ...repo }));
+        const subgroupsOrProjects = Object.entries(data).map(([id, repo]) => ({
+          ...repo,
+        }));
 
-        // Update the repoList with the fetched subgroups for the expanded repo
         setRepoList((prevRepoList) =>
           updateRepoWithSubgroups(prevRepoList, repoId, subgroupsOrProjects)
         );
 
-        // Expand the repo
         setExpandedRepos((prev) => ({ ...prev, [repoId]: true }));
       } catch (error) {
         console.error("Error loading subgroups/projects:", error);
@@ -74,31 +86,48 @@ const RepoSettings = () => {
     }
   };
 
-  // Recursive function to update the repoList state with fetched subgroups
-  const updateRepoWithSubgroups = (repoList: RepoList[], repoId: string, subgroups: RepoList[]): RepoList[] => {
+  const updateRepoWithSubgroups = (
+    repoList: RepoList[],
+    repoId: string,
+    subgroups: RepoList[]
+  ): RepoList[] => {
     return repoList.map((repo) => {
       if (repo.id === repoId) {
-        return { ...repo, subgroups }; // Update the repo with its fetched subgroups
+        return { ...repo, subgroups };
       }
-      // If this repo has nested subgroups, update those recursively
       if (repo.subgroups) {
-        return { ...repo, subgroups: updateRepoWithSubgroups(repo.subgroups, repoId, subgroups) };
+        return {
+          ...repo,
+          subgroups: updateRepoWithSubgroups(repo.subgroups, repoId, subgroups),
+        };
       }
       return repo;
     });
   };
 
-  // Recursive function to render subgroups or projects
   const renderSubgroups = (subgroups: RepoList[], level = 0) => {
     return (
       <div className={`pl-${level * 6} mt-2`}>
         {subgroups.map((subgroup) => (
           <div
             key={subgroup.id}
-            className={`flex items-center justify-between bg-gray-50 rounded-lg p-2 mb-2 shadow-sm ${subgroup.subgroups ? "border-l-2 border-gray-300" : ""}`}
+            className={`flex items-center justify-between bg-gray-50 rounded-lg p-2 mb-2 shadow-sm ${
+              subgroup.subgroups ? "border-l-2 border-gray-300" : ""
+            }`}
           >
-            <div className={`flex items-center ${subgroup.subgroups ? "cursor-pointer" : ""}`} onClick={() => subgroup.subgroups && handleExpand(subgroup.id)}>
-              <span className={`font-medium ${subgroup.subgroups ? "text-gray-900" : "text-gray-700"}`}>{subgroup.name}</span>
+            <div
+              className={`flex items-center ${
+                subgroup.subgroups ? "cursor-pointer" : ""
+              }`}
+              onClick={() => subgroup.subgroups && handleExpand(subgroup.id)}
+            >
+              <span
+                className={`font-medium ${
+                  subgroup.subgroups ? "text-gray-900" : "text-gray-700"
+                }`}
+              >
+                {subgroup.name}
+              </span>
               {subgroup.subgroup && (
                 <button
                   className="ml-4 text-gray-600 hover:text-gray-800 focus:outline-none"
@@ -112,8 +141,6 @@ const RepoSettings = () => {
                 </button>
               )}
             </div>
-
-            {/* If there are nested subgroups and the repo is expanded, recursively render them */}
             {expandedRepos[subgroup.id] && subgroup.subgroups && (
               <div>{renderSubgroups(subgroup.subgroups, level + 1)}</div>
             )}
@@ -154,7 +181,6 @@ const RepoSettings = () => {
               )}
             </div>
 
-            {/* If subgroups/projects are present and the repo is expanded, display them */}
             {expandedRepos[repo.id] && repo.subgroups && (
               <div className="mt-2">{renderSubgroups(repo.subgroups)}</div>
             )}
