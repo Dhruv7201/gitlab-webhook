@@ -59,6 +59,7 @@ const IssueTable: React.FC<Props> = ({ selectedProjectId, lableName }) => {
   };
 
   useEffect(() => {
+    setIssueData(null);
     api
       .post("/get_issues_by_filter", {
         project_id: selectedProjectId,
@@ -86,9 +87,6 @@ const IssueTable: React.FC<Props> = ({ selectedProjectId, lableName }) => {
           <tr>
             <th scope="col" className="px-6 py-3 rounded-s-lg">
               Issues
-            </th>
-            <th scope="col" className="px-6 py-3">
-              Last Event
             </th>
             <th scope="col" className="px-6 py-3 rounded-e-lg">
               Duration
@@ -131,9 +129,6 @@ const IssueTable: React.FC<Props> = ({ selectedProjectId, lableName }) => {
                       {issue.creator_name}
                     </div>
                   </th>
-                  <td className="px-10 py-4">
-                    {renderLabel(issue.last_update)}
-                  </td>
                   <td className="px-6 py-4">{renderLabel(issue.duration)}</td>
                 </tr>
               );
@@ -145,3 +140,4 @@ const IssueTable: React.FC<Props> = ({ selectedProjectId, lableName }) => {
 };
 
 export default IssueTable;
+
