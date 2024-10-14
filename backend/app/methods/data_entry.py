@@ -283,6 +283,8 @@ def end_qa_assign(payload, db):
     filter = {'id':payload['object_attributes']['id']}
     issue = issue_collection.find_one(filter)
     curr_time = datetime.now()
+    if 'assign' not in issue:
+        return
     assign_arr = issue['assign']
     for index in range(len(assign_arr)-1, -1, -1):
         if assign_arr[index]['end_time'] == None:
