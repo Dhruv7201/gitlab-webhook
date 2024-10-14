@@ -55,9 +55,8 @@ const getColor = (label: string) => {
     Doing: "hsl(var(--chart-1))",
   };
 
-  return colors[label] || "#d3d3d3"; // Fallback color in hex
+  return colors[label] || "#000";
 };
-
 
 const CustomTooltip = ({ payload, label, chartConfig }: any) => {
   if (!payload || payload.length === 0) return null;
@@ -240,17 +239,19 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
             <YAxis tickFormatter={(value) => secondsToHMSorDays(value)} />
             <Tooltip content={<CustomTooltip chartConfig={chartConfig} />} />
             <Legend layout="horizontal" verticalAlign="top" align="center" />
-            {Object.keys(chartConfig).map((key, index) => (
-              <Bar
-                className="hover:cursor-pointer"
-                key={index}
-                dataKey={key}
-                fill={chartConfig[key].color}
-                stackId="a"
-                radius={[4, 4, 0, 0]}
-                onClick={handleBarClick}
-              />
-            ))}
+            {["Documentation", "Doing", "Testing"].map((key) =>
+              chartConfig[key] ? (
+                <Bar
+                  className="hover:cursor-pointer"
+                  key={key}
+                  dataKey={key}
+                  fill={chartConfig[key].color}
+                  stackId="a"
+                  radius={[4, 4, 0, 0]}
+                  onClick={handleBarClick}
+                />
+              ) : null
+            )}
           </BarChart>
         </ChartContainer>
       </CardContent>
@@ -259,3 +260,4 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
 };
 
 export default IssuesLifeTime;
+
