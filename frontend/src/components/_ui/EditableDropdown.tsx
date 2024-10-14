@@ -89,6 +89,7 @@ const EditableDropdown: React.FC<Props> = ({
         <Button
           variant="outline"
           className="justify-between"
+          style={{ whiteSpace: "normal", wordWrap: "break-word" }} // Allows text wrapping
           aria-expanded="true"
           data-state="opened"
         >
@@ -97,61 +98,66 @@ const EditableDropdown: React.FC<Props> = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-4">
-        <Command>
-          <div>
-            <input
-              type="text"
-              autoFocus
-              onChange={(e) => {
-                setValue(e.target.value);
-              }}
-              value={value}
-              className="w-full p-2 border border-gray-300 mb-4"
-              placeholder="Search Projects..."
-            />
+        <div className="max-h-[600px] overflow-auto max-w-[300px] custom-scrollbar">
+          <Command>
             <div>
-              {projects
-                .filter((item) => {
-                  if (value === "") {
-                    return true;
-                  }
-                  const input_value = value.toLowerCase();
-                  const item_value = item.name.toLowerCase();
-                  return input_value && item_value.startsWith(input_value);
-                })
-                .map((project) => (
+              <input
+                type="text"
+                autoFocus
+                onChange={(e) => {
+                  setValue(e.target.value);
+                }}
+                value={value}
+                className="w-full p-2 border border-gray-300 mb-4"
+                placeholder="Search Projects..."
+              />
+              <div>
+                {projects
+                  .filter((item) => {
+                    if (value === "") {
+                      return true;
+                    }
+                    const input_value = value.toLowerCase();
+                    const item_value = item.name.toLowerCase();
+                    return input_value && item_value.startsWith(input_value);
+                  })
+                  .map((project) => (
+                    <h1
+                      key={project.id}
+                      onClick={() => {
+                        onSearchButtonClick(project);
+                      }}
+                      className={`cursor-pointer p-2 hover:bg-gray-100 rounded ${
+                        project.name === selectedProjectName
+                          ? "bg-gray-100"
+                          : ""
+                      }`}
+                    >
+                      {project.name}
+                    </h1>
+                  ))}
+                {projects.length > 0 && (
                   <h1
-                    key={project.id}
                     onClick={() => {
-                      onSearchButtonClick(project);
+                      setSelectedProjectId(0);
+                      setValue("");
+                      setSelectedProjectName("View All Projects");
+                      setOpen(false);
+                      localStorage.setItem("selectedProjectId", "0");
                     }}
-                    className={`cursor-pointer p-2 hover:bg-gray-100 rounded ${
-                      project.name === selectedProjectName ? "bg-gray-100" : ""
-                    }`}
+                    className="cursor-pointer p-2 hover:bg-gray-100 rounded"
                   >
-                    {project.name}
+                    View All Projects
                   </h1>
-                ))}
-              {projects.length > 0 && (
-                <h1
-                  onClick={() => {
-                    setSelectedProjectId(0);
-                    setValue("");
-                    setSelectedProjectName("View All Projects");
-                    setOpen(false);
-                    localStorage.setItem("selectedProjectId", "0");
-                  }}
-                  className="cursor-pointer p-2 hover:bg-gray-100 rounded"
-                >
-                  View All Projects
-                </h1>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </Command>
+          </Command>
+        </div>
       </PopoverContent>
     </Popover>
   );
 };
 
 export default EditableDropdown;
+
