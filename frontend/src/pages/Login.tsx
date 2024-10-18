@@ -1,18 +1,18 @@
 import Notification from "@/Notification";
 import api from "@/utils/api";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import { validateToken } from "@/utils/api";
 
 const Login = () => {
   const navigate = useNavigate();
+  const usernameInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (localStorage.getItem("token")) {
       validateToken(localStorage.getItem("token") as string).then((res) => {
         if (!res) {
           localStorage.removeItem("token");
-
           navigate("/login");
         }
       });
@@ -20,6 +20,12 @@ const Login = () => {
       navigate("/login");
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (usernameInputRef.current) {
+      usernameInputRef.current.focus();
+    }
+  }, []);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,11 +54,15 @@ const Login = () => {
       console.log(err);
       if (err.response) {
         Notification({ message: err.response.data.detail, type: "error" });
+        setUsername("");
+        setPassword("");
       } else {
         Notification({
           message: "An error occurred. Please try again later.",
           type: "error",
         });
+        setUsername("");
+        setPassword("");
       }
     } finally {
       setLoading(false);
@@ -75,6 +85,7 @@ const Login = () => {
               type="text"
               id="username"
               name="username"
+              ref={usernameInputRef}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
