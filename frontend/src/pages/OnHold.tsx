@@ -113,32 +113,47 @@ const OnHold = () => {
                   <p className="text-lg font-semibold underline">
                     <Link to={`/issue/${issue.id}`}>{issue.title}</Link>
                   </p>
-                  <p className="text-sm text-gray-500 hover:underline cursor-pointer">
-                    <a
-                      href={issue.project_url}
-                      target="_blank"
-                      rel="noreferrer"
+                  <div className="flex items-center">
+                    <p className="text-sm text-gray-500 hover:underline cursor-pointer">
+                      <a
+                        href={issue.project_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {issue.project_name}
+                      </a>
+                    </p>
+                    <p
+                      className="text-sm text-gray-500 ml-4 hover:underline cursor-pointer"
+                      onClick={() => openSubgroup(issue)}
                     >
-                      {issue.project_name}
-                    </a>
-                  </p>
+                      Subgroup: {issue.subgroup_name}
+                    </p>
+                    <p className="text-sm text-gray-500 ml-4 hover:underline cursor-pointer">
+                      <a
+                        href={issue.issue_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Issue Url
+                      </a>
+                    </p>
+                    <p className="text-sm text-gray-500 ml-4 hover:underline cursor-pointer">
+                      <a
+                        href={issue.project_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Project Url
+                      </a>
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="flex items-start">
-                <p
-                  className="text-sm text-gray-500 hover:underline cursor-pointer"
-                  onClick={() => openSubgroup(issue)}
-                >
-                  Subgroup: {issue.subgroup_name}
-                </p>
-                <p className="text-sm text-gray-500 ml-4 hover:underline cursor-pointer">
-                  <a href={issue.issue_url} target="_blank" rel="noreferrer">
-                    Issue Url
-                  </a>
-                </p>
-                <p className="text-sm text-gray-500 ml-4 hover:underline cursor-pointer">
-                  <a href={issue.project_url} target="_blank" rel="noreferrer">
-                    Project Url
+                <p className="text-sm text-gray-500 hover:underline cursor-pointer">
+                  <a target="_blank" rel="noreferrer" href={issue.issue_url}>
+                    On Hold since {issue.on_hold_since}
                   </a>
                 </p>
               </div>
@@ -153,3 +168,4 @@ const OnHold = () => {
 };
 
 export default OnHold;
+
