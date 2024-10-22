@@ -6,7 +6,7 @@ def convert_to_ISC(date):
         return date
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
-    utc = datetime.strptime(date[:-4], "%Y-%m-%d %H:%M:%S")
+    utc = datetime.strptime(date[:-4], "%Y-%m-%d %H:%M:%S")if 'UTC' in date else datetime.strptime(date, "%Y-%m-%d")
 
     # Tell the datetime object that it's in UTC time zone since 
     # datetime objects are 'naive' by default

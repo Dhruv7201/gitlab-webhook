@@ -103,6 +103,7 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
         const { data } = response;
 
         if (data && data.data) {
+          data.data.sort((a: any, b: any) => a.title.localeCompare(b.title));
           setMilestones(data.data);
         } else {
           console.error("Unexpected data format:", data);
@@ -260,4 +261,3 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
 };
 
 export default IssuesLifeTime;
-

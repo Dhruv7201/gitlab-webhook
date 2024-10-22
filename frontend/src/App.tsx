@@ -14,6 +14,7 @@ import LabelSettings from "./pages/LabelSettings";
 import Settings from "./pages/Settings";
 import UserSettings from "./pages/UserSettings";
 import RepoSettings from "./pages/RepoSettings";
+import OnHold from "./pages/OnHold";
 
 function App() {
   return (
@@ -75,6 +76,14 @@ function App() {
         element={
           <Layout>
             <Issues />
+          </Layout>
+        }
+      />
+      <Route
+        path="/onHold"
+        element={
+          <Layout>
+            <OnHold />
           </Layout>
         }
       />

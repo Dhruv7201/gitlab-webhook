@@ -1,4 +1,4 @@
-tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -79,4 +79,3 @@ tailwind base;
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #a0a0a0; /* Handle color on hover */
 }
-

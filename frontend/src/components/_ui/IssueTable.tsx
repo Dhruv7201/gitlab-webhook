@@ -140,4 +140,3 @@ const IssueTable: React.FC<Props> = ({ selectedProjectId, lableName }) => {
 };
 
 export default IssueTable;
-

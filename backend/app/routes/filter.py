@@ -85,3 +85,89 @@ async def get_issues_by_filter(request: Dict, conn = Depends(get_connection)):
         return {'status': True, 'data': issues_list, 'message': 'Issues fetched successfully'}
     except Exception as e:
         return {"status": False, "data": [], "message": str(e)}
+
+
+
+@router.post("/get_onhold", tags=['filter'])
+async def get_onhold(request: Dict, conn = Depends(get_connection)):
+    try:
+        project_id = request.get('project_id', 0)
+        issues_collection = conn["issues"]
+        
+        issue_list = []
+
+        if project_id != 0:
+            issue_list.append({
+                '$match': {
+                    'project_id': project_id
+                }
+            })
+        
+        issue_list.extend([
+                {
+                    "$match": {
+                        "work": {
+                            "$elemMatch": {
+                                "label": "OnHold",
+                                "end_time": None
+                            }
+                        }
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "projects",
+                        "localField": "project_id",
+                        "foreignField": "id",
+                        "as": "project_details"
+                    }
+                },
+                {
+                    "$unwind": "$project_details"
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": 1,
+                        "title": 1,
+                        "on_hold_since": {
+                            "$map": {
+                                "input": {
+                                    "$filter": {
+                                        "input": "$work",
+                                        "as": "workItem",
+                                        "cond": {
+                                            "$and": [
+                                                { "$eq": ["$$workItem.label", "OnHold"] },
+                                                { "$eq": ["$$workItem.end_time", None] }
+                                            ]
+                                        }
+                                    }
+                                },
+                                "as": "onHoldWork",
+                                "in": "$$onHoldWork.start_time"
+                            }
+                        },
+                        "OnHold": 1,
+                        "sub_group": 1,
+                        "project_name": "$project_details.name",
+                        "project_url": "$project_details.web_url",
+                        "issue_url":"$url",
+                        "subgroup_name": "$project_details.subgroup_name"
+                    }
+                }
+            ])
+        
+        issues_list = list(issues_collection.aggregate(issue_list))
+
+        for issue in issues_list:
+            issue['on_hold_since'] = issue['on_hold_since'][0]
+            issue['on_hold_since'] = (datetime.now() - issue['on_hold_since']).total_seconds()
+            issue['on_hold_since'] = issue['on_hold_since'] / (24 * 3600)
+            issue['on_hold_since'] = round(issue['on_hold_since'], 2)
+            issue['on_hold_since'] = f"{issue['on_hold_since']} Days"
+        
+        return {'status': True, 'data': issues_list, 'message': 'Issues fetched successfully'}
+    
+    except Exception as e:
+        return {"status": False, "data": [], "message": str(e)}

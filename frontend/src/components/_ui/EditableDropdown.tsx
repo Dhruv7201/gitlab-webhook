@@ -160,4 +160,3 @@ const EditableDropdown: React.FC<Props> = ({
 };
 
 export default EditableDropdown;
-

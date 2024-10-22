@@ -136,6 +136,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                           <span> Issues</span>
                         </NavLink>
                       </li>
+                      <li>
+                        <NavLink
+                          to="/onHold"
+                          className={({ isActive }) =>
+                            `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
+                              isActive ? "bg-gray-400" : "hover:bg-gray-700"
+                            }`
+                          }
+                        >
+                          <ListChecks />
+                          <span> On Hold</span>
+                        </NavLink>
+                      </li>
                       {level === "admin" && (
                         <li>
                           <NavLink
