@@ -7,6 +7,8 @@ import {
   ListChecks,
   Settings,
   LogOut,
+  Proportions,
+  Blinds,
 } from "lucide-react";
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
@@ -31,7 +33,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     if (
       path.includes("/milestones") ||
       path.includes("/users") ||
-      path.includes("/issues")
+      path.includes("/issues") ||
+      path.includes("/onHold") ||
+      path.includes("/daily-report") ||
+      path.includes("/settings")
     ) {
       setDropdownOpen(true);
     }
@@ -145,8 +150,21 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             }`
                           }
                         >
-                          <ListChecks />
+                          <Blinds />
                           <span> On Hold</span>
+                        </NavLink>
+                      </li>
+                      <li>
+                        <NavLink
+                          to="/daily-report"
+                          className={({ isActive }) =>
+                            `py-3 px-4 rounded-md flex items-center space-x-3 text-lg ${
+                              isActive ? "bg-gray-400" : "hover:bg-gray-700"
+                            }`
+                          }
+                        >
+                          <Proportions />
+                          <span> Daily Report</span>
                         </NavLink>
                       </li>
                       {level === "admin" && (

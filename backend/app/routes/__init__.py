@@ -7,6 +7,7 @@ from app.routes.milestones import router as milestone_router
 from app.routes.filter import router as filter_routes
 from app.routes.login import router as login_router
 from app.routes.settings import router as settings_router
+from app.routes.reports import router as reports_router
 
 
 def register_routers(app):
@@ -18,4 +19,4 @@ def register_routers(app):
     app.include_router(filter_routes)
     app.include_router(login_router)
     app.include_router(settings_router)
-    
+    app.include_router(reports_router)

@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import UserSettings from "./pages/UserSettings";
 import RepoSettings from "./pages/RepoSettings";
 import OnHold from "./pages/OnHold";
+import DailyReport from "./pages/DailyReport";
 
 function App() {
   return (
@@ -84,6 +85,14 @@ function App() {
         element={
           <Layout>
             <OnHold />
+          </Layout>
+        }
+      />
+      <Route
+        path="/daily-report"
+        element={
+          <Layout>
+            <DailyReport />
           </Layout>
         }
       />

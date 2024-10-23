@@ -56,87 +56,15 @@ async def read_milestones(db=Depends(get_connection)) -> dict:
 
     return {"status": True, "data": all_milestones, "message": "Milestones fetched successfully"}
 
-@router.post("/milestones")
-async def get_milestones(request: dict, db=Depends(get_connection)):
-    milestone_collection = db["milestones"]
-
-    aggregate = [
-        {
-            "$group": {
-                "_id": "$state",
-                "milestones": {
-                    "$push": "$$ROOT"
-                }
-            }
-        },
-        {
-            "$project": {
-                "_id": 0,
-                "state": "$_id",
-                "milestones": 1,
-            }
-        }
-    ]
-    
-    results = await milestone_collection.aggregate(aggregate).to_list(None)
-    
-    ongoing_milestones = []
-    completed_milestones = []
-    all_milestones = []
-
-    for result in results:
-        for milestone in result['milestones']:
-            milestone_data = {
-                'title': milestone['title'],
-                'start_date': milestone['start_date'],
-                'due_date': milestone['due_date'],
-                'web_url': milestone['web_url'],
-                'id': milestone['id']
-            }
-            if milestone['state'] == 'active':
-                ongoing_milestones.append(milestone_data)
-            else:
-                completed_milestones.append(milestone_data)
-            all_milestones.append(milestone_data)
-    issues_collection = db["issues"]
-    for ongoing_milestone in ongoing_milestones:
-        # get issues for each milestone
-        pipeline = [
-            {
-                "$match": {
-                    "milestone.milestone_id": ongoing_milestone['id']
-                }
-            },
-            {
-                "$group": {
-                    "_id": "$state",
-                    "count": {
-                        "$sum": 1
-                    }
-                }
-            }
-        ]
-        issues = await issues_collection.aggregate(pipeline).to_list(None)
-        ongoing_milestone['issues'] = issues
-
-
-    return {
-        "status": True,
-        "data": {
-            "ongoing_milestones": ongoing_milestones,
-            "completed_milestones": completed_milestones,
-            "all_milestones": all_milestones
-        },
-        "message": "Milestones fetched successfully"
-    }
-
 
 @router.post("/active_milestones")
 async def get_active_milestones(db=Depends(get_connection)):
     try:
         # Get all active milestones from the database
-        await read_milestones(db)
         milestone_collection = db["milestones"]
+        # drop milestone collection
+        await milestone_collection.drop()
+        await read_milestones(db)
         
         # Fetch active milestones asynchronously
         active_milestones = []
