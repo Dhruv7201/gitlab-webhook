@@ -33,7 +33,6 @@ const DailyReport = () => {
 
       try {
         const date = format(selectedDate, "yyyy-MM-dd");
-        console.log("Formatted date for API", date);
 
         const response = await api.post("/daily_report", {
           project_id: selectedProjectId,
@@ -84,8 +83,6 @@ const DailyReport = () => {
           fullTitle.split(" ").slice(0, maxWords).join(" ") +
           (fullTitle.split(" ").length > maxWords ? "..." : "");
         const issueUrl = info.row.original.issue_url;
-
-        console.log("Issue URL:", issueUrl); // Log the issue_url to debug
 
         // Ensure issueUrl is not undefined
         if (!issueUrl) {
@@ -157,6 +154,7 @@ const DailyReport = () => {
 
   const onSubmit = async (formData: any) => {
     try {
+      console.log("Submitting data:", formData.data);
       const response = await api.post("/daily_report_comments", {
         project_id: selectedProjectId,
         date: selectedDate?.toISOString().split("T")[0],
@@ -169,8 +167,6 @@ const DailyReport = () => {
         console.error("Error submitting data:", result.message);
         return;
       }
-
-      console.log("Data submitted successfully:", result.message);
     } catch (error) {
       console.error("Error submitting data:", error);
     }
@@ -229,3 +225,4 @@ const DailyReport = () => {
 };
 
 export default DailyReport;
+

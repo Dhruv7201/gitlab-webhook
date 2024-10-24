@@ -24,11 +24,8 @@ async def daily_report(
     conn=Depends(get_connection)
 ):
     selected_date = report_request.selected_date
-    # If no date is provided, use the current date
     if selected_date is None:
-        print("selected_date is None")
         selected_date = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-    print(selected_date)
     date = selected_date
     issues_collection = conn["issues"]
 
@@ -80,7 +77,7 @@ async def daily_report(
 
     issue_list.append({
         '$match': {
-            'work.label': {'$in': ['Doing', 'Testing', 'Documentation']},
+            'work.label': {'$in': ['Doing', 'Testing', 'Documentation']},  # filter relevant status
             'work.start_time': {
                 '$gte': datetime.strptime(date, '%Y-%m-%d'),
                 '$lt': datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
@@ -99,6 +96,7 @@ async def daily_report(
                 'milestone': '$milestone_details.title',
                 'milestone_start_time': '$milestone_details.start_time',
                 'status': '$work.label',
+                'start_time': '$work.start_time',  # Capture work.start_time for comparison
                 'due_date': '$due_date',
                 'efforts': {'$ifNull': ['$efforts_comments.efforts', 0]},
                 'comments': {'$ifNull': ['$efforts_comments.comments', '']}
@@ -108,29 +106,40 @@ async def daily_report(
 
     issues = list(issues_collection.aggregate(issue_list))
     report = [{k: v for k, v in issue.items() if k != '_id'} for issue in issues]
-    # Dictionary to track the latest milestone start date for each issue
-    unique_issues = {}
     
+    # Dictionary to track unique issues based on title (name)
+    unique_issues = {}
+
     for issue in report:
         if issue.get('due_date'):
             issue['due_date'] = str(issue['due_date']).split(' ')[0]
         
-        # Check if the issue is already in the unique_issues
         issue_id = issue['issue_id']
+        start_time = issue.get('start_time')
         milestone_start_time = issue.get('milestone_start_time')
 
+        # Identify if the issue_id is already being tracked
         if issue_id not in unique_issues:
             unique_issues[issue_id] = issue
         else:
-            # Compare milestone start times and keep the one with the latest date
             existing_issue = unique_issues[issue_id]
-            if milestone_start_time and (not existing_issue.get('milestone_start_time') or milestone_start_time > existing_issue['milestone_start_time']):
+            
+            # 1. Compare milestone_start_time: Keep the latest one
+            if milestone_start_time and (
+                not existing_issue.get('milestone_start_time') or 
+                milestone_start_time > existing_issue['milestone_start_time']
+            ):
                 unique_issues[issue_id] = issue
+            
+            # 2. If milestone_start_time is equal, check for the latest start_time (status update)
+            elif milestone_start_time == existing_issue.get('milestone_start_time'):
+                if start_time and (not existing_issue.get('start_time') or start_time > existing_issue['start_time']):
+                    unique_issues[issue_id] = issue
 
     # Convert the dictionary back to a list
     report = list(unique_issues.values())
-
     return report
+
 
 @router.post("/daily_report_comments", tags=['reports'])
 async def daily_report_comments(request: Dict, conn=Depends(get_connection)):
@@ -150,6 +159,9 @@ async def daily_report_comments(request: Dict, conn=Depends(get_connection)):
     comments_efforts_collection = conn["comments_efforts"]
 
     for item in data:
+        if not item.get('comments') and not item.get('efforts'):
+            continue
+        print(item)
         issue_id = item.get('id')
         comment = item.get('comments')
         effort_hours = item.get('efforts', 0)
@@ -175,3 +187,4 @@ async def daily_report_comments(request: Dict, conn=Depends(get_connection)):
             })
 
     return {"status": True, "message": "Comments saved successfully"}
+
