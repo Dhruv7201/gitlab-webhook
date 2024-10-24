@@ -77,7 +77,7 @@ async def daily_report(
 
     issue_list.append({
         '$match': {
-            'work.label': {'$in': ['Doing', 'Testing', 'Documentation']},  # filter relevant status
+            'work.label': {'$in': ['Doing', 'Testing', 'Documentation']},
             'work.start_time': {
                 '$gte': datetime.strptime(date, '%Y-%m-%d'),
                 '$lt': datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
@@ -96,7 +96,7 @@ async def daily_report(
                 'milestone': '$milestone_details.title',
                 'milestone_start_time': '$milestone_details.start_time',
                 'status': '$work.label',
-                'start_time': '$work.start_time',  # Capture work.start_time for comparison
+                'start_time': '$work.start_time',
                 'due_date': '$due_date',
                 'efforts': {'$ifNull': ['$efforts_comments.efforts', 0]},
                 'comments': {'$ifNull': ['$efforts_comments.comments', '']}
