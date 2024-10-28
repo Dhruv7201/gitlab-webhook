@@ -187,4 +187,3 @@ async def daily_report_comments(request: Dict, conn=Depends(get_connection)):
             })
 
     return {"status": True, "message": "Comments saved successfully"}
-

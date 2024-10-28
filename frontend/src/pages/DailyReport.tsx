@@ -225,4 +225,3 @@ const DailyReport = () => {
 };
 
 export default DailyReport;
-

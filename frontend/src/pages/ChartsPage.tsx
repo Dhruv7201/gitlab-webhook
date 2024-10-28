@@ -9,7 +9,6 @@ import WorkDoneList from "@/components/_tables/WorkDoneList";
 import AssignTaskList from "@/components/_tables/AssignTaskList";
 import { DatePickerWithRange } from "@/utils/DateRange";
 import { DateRange } from "react-day-picker";
-import { MultiBarChart } from "@/components/_charts/MultiBarchart";
 import IssuesLifeTime from "@/components/_charts/IssuesLifeTime";
 import { Button } from "@/components/_ui/button";
 import { MonitorDown } from "lucide-react";
@@ -96,7 +95,6 @@ const ChartsPage = () => {
         <AreaChartCom selectedProjectId={selectedProjectId} dateRange={date} />
         <Barchart selectedProjectId={selectedProjectId} dateRange={date} />
         <CustomChart selectedProjectId={selectedProjectId} dateRange={date} />
-        <MultiBarChart project_id={selectedProjectId} dateRange={date} />
         <WorkBarChart selectedProjectId={selectedProjectId} dateRange={date} />
         <WorkDoneList selectedProjectId={selectedProjectId} dateRange={date} />
         <AssignTaskList
