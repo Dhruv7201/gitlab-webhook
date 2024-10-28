@@ -8,10 +8,10 @@ router = APIRouter()
 @router.post("/issue_lifetime", tags=["issue"])
 async def issue_lifetime(request: dict, conn = Depends(get_connection)):
     try:
-        project_id = request.get("project_id")
-        milestone_id = request.get("milestone_id")
-        all_milestones = request.get("all_milestones")
-        date_range = request.get("date_range")
+        project_id = request.get("project_id") or 0
+        milestone_id = request.get("milestone_id") or 0
+        all_milestones = request.get("all_milestones") or []
+        date_range = request.get("date_range") or {}
         user_collection = conn["users"]
 
         date_range = formate_date_range(date_range)
