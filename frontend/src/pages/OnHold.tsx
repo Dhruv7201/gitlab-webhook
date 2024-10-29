@@ -63,11 +63,9 @@ const OnHold = () => {
           Notification({ message: res.data.message, type: "error" });
           return;
         }
-        console.log(res.data.data);
         setIssues(res.data.data);
       })
       .catch((err) => {
-        console.log(err);
         Notification({ message: "Problem fetching data", type: "error" });
       });
   }, []);

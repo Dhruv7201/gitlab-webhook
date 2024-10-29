@@ -18,9 +18,11 @@ interface Props {
 
 export function DatePicker({ date, setDate, className }: Props) {
   const handleSelect = (selectedDate: Date | undefined) => {
-    console.log("selectedDate in DatePicker", selectedDate); // Log for debugging
     setDate(selectedDate);
   };
+
+  const today = new Date();
+  const disabledDays = (date: Date) => date > today;
 
   return (
     <div className={cn("grid gap-2", className)}>
@@ -44,6 +46,7 @@ export function DatePicker({ date, setDate, className }: Props) {
             mode="single"
             selected={date}
             onSelect={handleSelect}
+            disabled={disabledDays}
           />
         </PopoverContent>
       </Popover>

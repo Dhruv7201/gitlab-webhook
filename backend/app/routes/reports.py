@@ -1,13 +1,10 @@
-from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from app.db import get_connection
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel
 import pytz
-from datetime import datetime, timezone
 from typing import List, Dict
-from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from typing import Any
 
 
 router = APIRouter()
@@ -18,126 +15,101 @@ class DailyReportRequest(BaseModel):
     selected_date: str
 
 
-@router.post("/daily_report", response_model=List[Dict], tags=['reports'])
+@router.post("/daily_report", response_model=List[Dict[str, Any]], tags=['reports'])
 async def daily_report(
     report_request: DailyReportRequest,
     conn=Depends(get_connection)
 ):
-    selected_date = report_request.selected_date
-    if selected_date is None:
-        selected_date = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-    date = selected_date
+    selected_date = datetime.strptime(report_request.selected_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+
+    # Fetch all issues that match the criteria
     issues_collection = conn["issues"]
+    all_issues = list(issues_collection.find({
+        'project_id': report_request.project_id if report_request.project_id != 0 else {'$exists': True}
+    }))
 
-    issue_list = [
-        {'$unwind': '$work'},
-        {
-            '$lookup': {
-                'from': 'users',
-                'localField': 'work.user_id',
-                'foreignField': 'id',
-                'as': 'assigned_to'
-            }
-        },
-        {'$unwind': '$assigned_to'},
-        {
-            '$lookup': {
-                'from': 'milestones',
-                'localField': 'milestone.milestone_id',
-                'foreignField': 'id',
-                'as': 'milestone_details'
-            }
-        },
-        {'$unwind': {'path': '$milestone_details', 'preserveNullAndEmptyArrays': True}},
-        {
-            '$lookup': {
-                'from': 'comments_efforts',
-                'let': {'issue_id': '$iid'},
-                'pipeline': [
-                    {
-                        '$match': {
-                            '$expr': {
-                                '$and': [
-                                    {'$eq': ['$issue_id', '$$issue_id']},
-                                    {'$eq': ['$date', date]}
-                                ]
-                            }
-                        }
-                    }
-                ],
-                'as': 'efforts_comments'
-            }
-        },
-        {'$unwind': {'path': '$efforts_comments', 'preserveNullAndEmptyArrays': True}},
-    ]
-    
-    project_id = report_request.project_id
-    if project_id != 0:
-        issue_list.append({'$match': {'project_id': project_id}})
+    # Fetch users and milestones in a single call
+    users_collection = conn["users"]
+    milestones_collection = conn["milestones"]
 
-    issue_list.append({
-        '$match': {
-            'work.label': {'$in': ['Doing', 'Testing', 'Documentation']},
-            'work.start_time': {
-                '$gte': datetime.strptime(date, '%Y-%m-%d'),
-                '$lt': datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
-            }
-        }
-    })
+    users_dict = {user['id']: user['name'] for user in users_collection.find()}
+    milestones_dict = {milestone['id']: milestone for milestone in milestones_collection.find()}
 
-    issue_list.extend([
-        {
-            '$project': {
-                'id': '$iid',
-                'issue_id': '$id',
-                'issue_url': '$url',
-                'name': '$title',
-                'assigned_to': '$assigned_to.name',
-                'milestone': '$milestone_details.title',
-                'milestone_start_time': '$milestone_details.start_time',
-                'status': '$work.label',
-                'start_time': '$work.start_time',
-                'due_date': '$due_date',
-                'efforts': {'$ifNull': ['$efforts_comments.efforts', 0]},
-                'comments': {'$ifNull': ['$efforts_comments.comments', '']}
-            }
-        }
-    ])
-
-    issues = list(issues_collection.aggregate(issue_list))
-    report = [{k: v for k, v in issue.items() if k != '_id'} for issue in issues]
-    
-    # Dictionary to track unique issues based on title (name)
+    report = []
     unique_issues = {}
 
+    for issue in all_issues:
+        # Check for relevant work entries
+        for work in issue.get('work', []):
+            if work['label'] in ['Doing', 'Testing', 'Documentation'] and work.get('end_time') is None:
+                assigned_to_name = users_dict.get(work['user_id'], 'Unknown')
+
+                # Initialize variable for last milestone details
+                milestone_details = None
+
+                # Get the last milestone
+                milestones = issue.get('milestone', [])
+                if milestones:
+                    last_milestone = milestones[-1]  # Get the last milestone
+                    milestone_id = last_milestone.get('milestone_id')
+                    if milestone_id:
+                        milestone_details = milestones_dict.get(milestone_id)
+
+                # Build the report entry
+                report_entry = {
+                    'id': issue['iid'],
+                    'issue_id': issue['id'],
+                    'issue_url': issue['url'],
+                    'name': issue['title'],
+                    'assigned_to': assigned_to_name,
+                    'milestone': milestone_details['title'] if milestone_details else None,
+                    'milestone_start_time': milestone_details['start_date'] if milestone_details else None,
+                    'status': work['label'],
+                    'start_time': work['start_time'],
+                    'due_date': issue.get('due_date'),
+                    'efforts': 0,  # Default efforts
+                    'comments': ''  # Default comments
+                }
+
+                # Check for efforts and comments from comments_efforts collection
+                efforts_comments = list(conn["comments_efforts"].find({
+                    'issue_id': issue['iid'],
+                    'date': selected_date.date().strftime('%Y-%m-%d'),
+                }))
+
+                if efforts_comments:
+                    report_entry['efforts'] = efforts_comments[0].get('efforts', 0)
+                    report_entry['comments'] = efforts_comments[0].get('comments', '')
+
+                # Manage unique issues based on issue_id
+                issue_id = report_entry['issue_id']
+                if issue_id not in unique_issues:
+                    unique_issues[issue_id] = report_entry
+                else:
+                    existing_issue = unique_issues[issue_id]
+                    milestone_start_time = report_entry['milestone_start_time']
+                    
+                    # Keep the latest milestone start time
+                    if milestone_start_time and (
+                        not existing_issue.get('milestone_start_time') or 
+                        milestone_start_time > existing_issue['milestone_start_time']
+                    ):
+                        unique_issues[issue_id] = report_entry
+                    
+                    # If milestone start times are equal, check start_time
+                    elif milestone_start_time == existing_issue.get('milestone_start_time'):
+                        start_time = report_entry['start_time']
+                        if start_time and (not existing_issue.get('start_time') or start_time > existing_issue['start_time']):
+                            unique_issues[issue_id] = report_entry
+
+    # Convert the unique issues dictionary back to a list
+    report = list(unique_issues.values())
+    
+    # Format due_date
     for issue in report:
         if issue.get('due_date'):
             issue['due_date'] = str(issue['due_date']).split(' ')[0]
-        
-        issue_id = issue['issue_id']
-        start_time = issue.get('start_time')
-        milestone_start_time = issue.get('milestone_start_time')
-
-        # Identify if the issue_id is already being tracked
-        if issue_id not in unique_issues:
-            unique_issues[issue_id] = issue
-        else:
-            existing_issue = unique_issues[issue_id]
-            
-            # 1. Compare milestone_start_time: Keep the latest one
-            if milestone_start_time and (
-                not existing_issue.get('milestone_start_time') or 
-                milestone_start_time > existing_issue['milestone_start_time']
-            ):
-                unique_issues[issue_id] = issue
-            
-            # 2. If milestone_start_time is equal, check for the latest start_time (status update)
-            elif milestone_start_time == existing_issue.get('milestone_start_time'):
-                if start_time and (not existing_issue.get('start_time') or start_time > existing_issue['start_time']):
-                    unique_issues[issue_id] = issue
-
-    # Convert the dictionary back to a list
-    report = list(unique_issues.values())
+    
     return report
 
 
@@ -161,7 +133,6 @@ async def daily_report_comments(request: Dict, conn=Depends(get_connection)):
     for item in data:
         if not item.get('comments') and not item.get('efforts'):
             continue
-        print(item)
         issue_id = item.get('id')
         comment = item.get('comments')
         effort_hours = item.get('efforts', 0)

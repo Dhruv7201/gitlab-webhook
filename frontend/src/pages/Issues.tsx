@@ -56,7 +56,6 @@ const Issues = () => {
           Notification({ message: res.data.message, type: "error" });
           return;
         }
-        console.log(res.data.data);
         setIssues(res.data.data);
       })
       .catch((err) => {

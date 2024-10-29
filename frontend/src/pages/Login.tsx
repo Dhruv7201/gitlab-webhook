@@ -51,7 +51,6 @@ const Login = () => {
       localStorage.setItem("token", token);
       navigate("/dashboard");
     } catch (err: any) {
-      console.log(err);
       if (err.response) {
         Notification({ message: err.response.data.detail, type: "error" });
         setUsername("");

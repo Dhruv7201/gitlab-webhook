@@ -154,7 +154,6 @@ const DailyReport = () => {
 
   const onSubmit = async (formData: any) => {
     try {
-      console.log("Submitting data:", formData.data);
       const response = await api.post("/daily_report_comments", {
         project_id: selectedProjectId,
         date: selectedDate?.toISOString().split("T")[0],
@@ -173,7 +172,7 @@ const DailyReport = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="p-4">
       <div className="flex justify-between items-center">
         <div className="flex gap-4">
           <EditableDropdown
