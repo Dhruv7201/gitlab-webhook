@@ -4,18 +4,31 @@ from app.utils.date_utils import convert_to_ISC
 import requests
 import os
 from fastapi import HTTPException
-
+'''
+label list is list of labels that are tracked for user
+issue_labels_list is the list of labels that are tracked for issues
+# TODO automate this as i have added the labels setting in the front end
+'''
 labels_list = {'Doing': 0, 'Testing': 1, 'Documentation': 2}
 issue_labels_list = {'Documentation': 0, 'DocComplete': 1, 'DevReady': 2, 'Doing': 3, 'QA': 4, 'Testing': 5, 'Ready for release': 6, 
                      'ReleasePlan': 7, 'Regression': 8, 'ReadyForProd': 9, 'LivePublishing': 10, 'LivePublished': 11, 
                      'Smoke': 12, 'SmokeDone': 13, 'OnHold': 14, 'Re-Open': 15, 'Unplanned': 16}
+
+'''
+Re-Open is for tracking the reopen count of the issue
+'''
 reOpen = 'Re-Open'
 
 def employee(payload: dict, db):
+    '''
+    this method is to insert the employee details in the user collection
+    '''
     user = payload['user']
     token = os.getenv('GITLAB_KEY')
     headers = {"Private-Token": token}
-
+    '''
+    get the employee details from the gitlab api as we are not getting the email in the payload
+    '''
     response = requests.get(f"https://code.ethicsinfotech.in/api/v4/users/{user['id']}", headers=headers)
     response.raise_for_status()
     
@@ -35,6 +48,11 @@ def employee(payload: dict, db):
         insert_user(assigned_employee, db)
 
 def insert_work_in_user(payload: dict, db):
+    '''
+    this method adds and modifies the work of the user in the user collection details are issue_id, project_id, label, start_time, end_time, duration
+    conditions is that if the label is added then the start_time will be added and if the label is removed then the end_time will be added
+    based on start time and end time the duration will be calculated and added
+    '''
     curr_work = []
     changed_works = [0] * len(labels_list)
     
@@ -71,7 +89,9 @@ def insert_work_in_user(payload: dict, db):
     user_id = payload['user']['username']
     curr_label_titles = [label['title'] for label in curr_labels]
     prev_label_titles = [label['title'] for label in previous_labels]
-    
+    '''
+    this is to maintain the Ready for release and OnHold fields in the issue collection
+    '''    
     if 'Ready for release' in curr_label_titles and 'Ready for release' not in prev_label_titles:
         end_qa_assign(payload, db)
     if 'OnHold' in curr_label_titles and 'OnHold' not in prev_label_titles:
@@ -80,6 +100,9 @@ def insert_work_in_user(payload: dict, db):
     update_work_of_user(curr_work, user_id, db)
 
 def insert_work_in_issue(payload: dict, db):
+    '''
+    this does the same thing as the insert_work_in_user but for the issue collection and details are user_id, label, start_time, end_time, duration
+    '''
     curr_work = []
     changed_works = [0] * len(issue_labels_list)
 
@@ -115,6 +138,9 @@ def insert_work_in_issue(payload: dict, db):
     update_work_of_issue(curr_work, issue_id, db)
 
 def project(project_info: dict, db):
+    '''
+    only work is to insert this project details in projects collection if not present
+    '''
     project_data = {
         'id': project_info['id'],
         'name': project_info['name'],
@@ -125,6 +151,9 @@ def project(project_info: dict, db):
     insert_project(project_data, db)
 
 def issue(payload: dict, db):
+    '''
+    preparation of the issue data and insertion of the issue in the issue collection
+    '''
     changes = payload.get('changes', {})
     issue_object = payload['object_attributes']
     project_info = payload['project']
@@ -147,6 +176,9 @@ def issue(payload: dict, db):
     insert_issues(payload, issue_data, changes, db)
 
     if 'labels' in changes:
+        '''
+        It is to maintain the reopen count of the issue
+        '''
         curr_labels = changes['labels']['current']
         prev_labels = changes['labels']['previous']
         curr_titles = [label['title'] for label in curr_labels]
@@ -158,6 +190,9 @@ def issue(payload: dict, db):
                 insertReOpen(payload, db)
 
     if issue_type == 'task':
+        '''
+        Take the child task and bind it to the parent issue by calling the gitlab api and getting the child task details
+        '''
         # Your GitLab instance URL and Personal Access Token (PAT)
         gitlab_url = "https://code.ethicsinfotech.in/"
         private_token = os.getenv('GITLAB_KEY')
@@ -179,3 +214,4 @@ def work_item(payload: dict, db):
         issue(payload, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Work item processing failed: {str(e)}")
+
