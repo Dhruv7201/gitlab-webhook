@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from dateutil import tz
 
-def convert_to_ISC(date):
+def convert_to_ISC(date): # this function is used to convert the date to the ISC timezone
     if date == None:
         return date
     from_zone = tz.tzutc()
@@ -16,7 +16,7 @@ def convert_to_ISC(date):
     central = utc.astimezone(to_zone)
     return central
 
-def parse_ISC_datetime(isc_date_str):
+def parse_ISC_datetime(isc_date_str): # this function is used to parse the date in the ISC timezone
     # Define ISC time zone (UTC+5:30)
     ISC = tz.gettz('Asia/Kolkata')
     
@@ -27,7 +27,7 @@ def parse_ISC_datetime(isc_date_str):
     
     return isc_dt
 
-def calculate_time_difference(isc_date_str):
+def calculate_time_difference(isc_date_str): # this function is used to calculate the time difference between the current time and the ISC time
     # Get current local datetime with timezone info
     local_now = datetime.now(tz.tzlocal())
 
@@ -39,13 +39,13 @@ def calculate_time_difference(isc_date_str):
     return time_difference.total_seconds()
 
 
-def format_duration(seconds: float) -> str:
+def format_duration(seconds: float) -> str: # this function is used to format the duration in the string format
     td = timedelta(seconds=seconds)
     td = str(td).split(".")[0]
     return str(td)
 
 
-def convert_to_IST(utc_dt):
+def convert_to_IST(utc_dt): # this function is used to convert the date to the IST timezone
 
     # Define UTC time zone
     UTC = tz.gettz('UTC')
@@ -63,7 +63,7 @@ def convert_to_IST(utc_dt):
     return ist_dt
 
 
-def formate_date_range(date_range):
+def formate_date_range(date_range): # this function is used to format the date range to the IST timezone by converting the UTC to IST with the help of the convert_to_IST function
     if date_range.get("from") and date_range.get("to"):
         # Convert UTC to IST for both "from" and "to" dates
         date_range["from"] = convert_to_IST(date_range["from"])
@@ -88,3 +88,4 @@ def formate_date_range(date_range):
         date_range["to"] = datetime.now()
         date_range["from"] = date_range["to"] - timedelta(days=30)
     return date_range
+
