@@ -38,8 +38,11 @@ async def daily_report(
     report = []
     unique_issues = {}
 
+    # Get the current time in UTC for calculating effort
+    now = datetime.now(pytz.utc)
+
     for issue in all_issues:
-        # Check for relevant work entries
+                # Check for relevant work entries
         for work in issue.get('work', []):
             if work['label'] in ['Doing', 'Testing', 'Documentation'] and work.get('end_time') is None:
                 assigned_to_name = users_dict.get(work['user_id'], 'Unknown')
@@ -55,6 +58,26 @@ async def daily_report(
                     if milestone_id:
                         milestone_details = milestones_dict.get(milestone_id)
 
+                
+                # Ensure start_time is aware, assuming UTC timezone for now
+                if isinstance(work['start_time'], datetime):
+                    # If work['start_time'] is naive, localize it to UTC
+                    if work['start_time'].tzinfo is None:
+                        start_time = work['start_time'].replace(tzinfo=pytz.utc)
+                    else:
+                        start_time = work['start_time']
+                else:
+                    if ' ' in str(work['start_time']):
+                        start_time = datetime.strptime(work['start_time'], '%Y-%m-%d %H:%M:%S') if work.get('start_time') else now
+                        start_time = start_time.replace(tzinfo=pytz.utc)  # Make it aware by setting UTC timezone
+                    if 'T' in str(work['start_time']):
+                        start_time = datetime.fromisoformat(work['start_time']) if work.get('start_time') else now
+                        start_time = start_time.replace(tzinfo=pytz.utc)
+
+                # Now that both `start_time` and `now` are aware, we can subtract them
+                time_diff = now - start_time
+                effort_hours = time_diff.total_seconds() / 3600  # Convert to hours
+
                 # Build the report entry
                 report_entry = {
                     'id': issue['iid'],
@@ -67,8 +90,8 @@ async def daily_report(
                     'status': work['label'],
                     'start_time': work['start_time'],
                     'due_date': issue.get('due_date'),
-                    'efforts': 0,  # Default efforts
-                    'comments': ''  # Default comments
+                    'efforts': round(effort_hours, 2),  # Rounded to 2 decimal places
+                    'comments': ''
                 }
 
                 # Check for efforts and comments from comments_efforts collection
@@ -78,7 +101,6 @@ async def daily_report(
                 }))
 
                 if efforts_comments:
-                    report_entry['efforts'] = efforts_comments[0].get('efforts', 0)
                     report_entry['comments'] = efforts_comments[0].get('comments', '')
 
                 # Manage unique issues based on issue_id
@@ -101,7 +123,6 @@ async def daily_report(
                         start_time = report_entry['start_time']
                         if start_time and (not existing_issue.get('start_time') or start_time > existing_issue['start_time']):
                             unique_issues[issue_id] = report_entry
-
     # Convert the unique issues dictionary back to a list
     report = list(unique_issues.values())
     
@@ -131,7 +152,7 @@ async def daily_report_comments(request: Dict, conn=Depends(get_connection)):
     comments_efforts_collection = conn["comments_efforts"]
 
     for item in data:
-        if not item.get('comments') and not item.get('efforts'):
+        if not item.get('comments'):
             continue
         issue_id = item.get('id')
         comment = item.get('comments')
@@ -158,3 +179,74 @@ async def daily_report_comments(request: Dict, conn=Depends(get_connection)):
             })
 
     return {"status": True, "message": "Comments saved successfully"}
+
+
+import requests
+
+# Helper function to convert _id to string in a list of documents
+def convert_ids_to_string(documents):
+    for doc in documents:
+        doc['_id'] = str(doc['_id'])
+    return documents
+
+# Fetch data function using asynchronous HTTP requests
+async def fetch_data_with_url(url):
+    response = requests.get(url)
+    return response.json()
+
+@router.get("/get_all_data", tags=['reports'])
+async def get_all_data(conn=Depends(get_connection)):
+    print(conn)
+    collections = {
+        'issues': conn["issues"],
+        'comments_efforts': conn["comments_efforts"],
+        'logins': conn["login"],
+        'milestones': conn["milestones"],
+        'projects': conn["projects"],
+        'users': conn["users"],
+    }
+
+    start_time = datetime.now()
+
+    # Asynchronously fetch all collections' data and convert _id to string
+    result = {}
+    for key, collection in collections.items():
+        print(f"Fetching data for {key}...")
+        print("Time taken: ", datetime.now() - start_time)
+        data = list(collection.find())
+        result[key] = convert_ids_to_string(data)
+    
+    print(f"Time taken: {datetime.now() - start_time}")
+    return result
+
+
+@router.get("/store_all_data", tags=['reports'])
+async def store_all_data(db=Depends(get_connection)):
+    
+
+    url = "https://apidev.gitrepo.ethicstechnology.net/get_all_data"
+
+    data = await fetch_data_with_url(url)
+    # Get references to collections
+    collections = {
+        'issues': db["issues"],
+        'comments_efforts': db["comments_efforts"],
+        'logins': db["login"],
+        'milestones': db["milestones"],
+        'projects': db["projects"],
+        'users': db["users"]
+    }
+
+    # delete existing data
+    for key, collection in collections.items():
+        collection.delete_many({})
+ 
+
+    # Store data in local DB
+    for key, collection in collections.items():
+        if key in data:  # Check if the key exists in the fetched data
+            collection.insert_many(data[key])
+
+    return {"status": True, "message": "Data stored successfully"}
+
+
