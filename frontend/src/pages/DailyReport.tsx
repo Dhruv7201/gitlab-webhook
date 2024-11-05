@@ -117,25 +117,7 @@ const DailyReport = () => {
     columnHelper.accessor("milestone", { header: "Milestone" }),
     columnHelper.accessor("status", { header: "Status" }),
     columnHelper.accessor("dueDate", { header: "Due Date" }),
-    columnHelper.accessor("efforts", {
-      header: "Efforts (hrs)",
-      cell: (info) => (
-        <Controller
-          control={control}
-          name={`data[${info.row.index}].efforts`}
-          render={({ field }) => (
-            <input
-              type="number"
-              {...field}
-              className="border border-gray-300 p-1"
-              onChange={(e) =>
-                handleInputChange(info.row.index, "efforts", e.target.value)
-              }
-            />
-          )}
-        />
-      ),
-    }),
+    columnHelper.accessor("efforts", { header: "Efforts (hrs)" }),
     columnHelper.accessor("comments", {
       header: "Comments",
       cell: (info) => (
@@ -150,7 +132,7 @@ const DailyReport = () => {
               onChange={(e) =>
                 handleInputChange(info.row.index, "comments", e.target.value)
               }
-              disabled={level === "user"} // Disable input for non-admin users
+              disabled={level === "user"}
             />
           )}
         />
