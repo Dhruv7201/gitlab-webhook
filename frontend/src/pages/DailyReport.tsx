@@ -26,6 +26,17 @@ const DailyReport = () => {
     }
   }, []);
 
+  const getLevel = () => {
+    const jwt = localStorage.getItem("token");
+    if (!jwt) return false;
+    const jwtData = jwt.split(".")[1];
+    const decodedJwtJsonData = window.atob(jwtData);
+    const decodedJwtData = JSON.parse(decodedJwtJsonData);
+    return decodedJwtData.level;
+  };
+
+  const level = getLevel();
+
   // Fetch the data when selectedProjectId or selectedDate changes
   useEffect(() => {
     const fetchData = async () => {
@@ -139,6 +150,7 @@ const DailyReport = () => {
               onChange={(e) =>
                 handleInputChange(info.row.index, "comments", e.target.value)
               }
+              disabled={level === "user"} // Disable input for non-admin users
             />
           )}
         />
@@ -224,3 +236,4 @@ const DailyReport = () => {
 };
 
 export default DailyReport;
+
