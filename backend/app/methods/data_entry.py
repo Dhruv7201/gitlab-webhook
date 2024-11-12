@@ -223,6 +223,7 @@ def push_assign(id, previous_assign, current_assign, project_id, db):
         assign_arr = issue['assign']
         
         assign_arr[-1]['end_time'] = curr_time
+        assign_arr[-1]['start_time'] = datetime.strptime(assign_arr[-1]['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
         assign_arr[-1]['duration'] = (assign_arr[-1]['end_time'] - assign_arr[-1]['start_time']).total_seconds()
         if current_assign != []:
             new_assign = {'user_id' : current_assign[0]['id'], 'start_time':curr_time, 'end_time':None, 'duration':None}
@@ -279,6 +280,8 @@ def push_assign_to_user(issue_id,  prev_assign, curr_assign, project_id, db):
             for index in range(len(assign_issue_arr)-1, -1, -1):
                 if assign_issue_arr[index]['issue_id'] == issue_id and assign_issue_arr[index]['start_time'] and not assign_issue_arr[index]['end_time']:
                     assign_issue_arr[index]['end_time'] = curr_time
+                    # convert to datetime.datetime from string
+                    assign_issue_arr[index]['start_time'] = datetime.strptime(assign_issue_arr[index]['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
                     assign_issue_arr[index]['duration'] = (curr_time - assign_issue_arr[index]['start_time']).total_seconds()
                     update = {'$set':{'assign_issues':assign_issue_arr}}
                     user_collection.update_one(filter, update)
