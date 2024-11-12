@@ -4,6 +4,7 @@ import os
 import requests
 from pydantic import BaseModel
 from pymongo import ReturnDocument
+from app.methods.auth import create_user
 
 
 router = APIRouter()
@@ -112,7 +113,7 @@ async def add_edit_user(user: UserSchema, db=Depends(get_connection)):
                 raise HTTPException(status_code=response.status_code, detail="Failed to fetch user details from GitLab API")
             data = response.json()
             user.email = data[0]['email']
-        users_collection.insert_one(user.dict())
+        create_user(users_collection, user)
         return {"status": True, "data": user.dict(), "message": "User added successfully"}
 
 
@@ -211,3 +212,4 @@ async def repo_settings(request: dict, db=Depends(get_connection)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
