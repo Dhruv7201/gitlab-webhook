@@ -1,46 +1,18 @@
-# FastAPI
-
-# Ignore virtual environment files
+# Python
+*.pyc
 __pycache__/
 venv/
-env.py
-
-# Ignore IDE specific files
-.idea/
-
-# Ignore pytest cache
-.pytest_cache/
-
-# Frontend (React with Vite)
-
-# Ignore node_modules folder
-node_modules/
-
-# Ignore build folder
+backend/.venv/
+.venv
+*.egg-info/
+dist/
 build/
+*.egg
 
-# Ignore Vite cache
-.vite/
+# React
+/node_modules/
+/build/
+.DS_Store
 
-# Tailwind CSS
-
-# Ignore build folder for Tailwind
-tailwind.config.js.map
-
-# Ignore VS Code settings for Tailwind
-**/tailwind.vscode.json
-
-# Tests
-
-# Ignore test files
-__tests__/
-test.py
-*.spec.js
-*.test.js
-
-# Other
-
-# Ignore any additional generated files you don't want to track
-*.log
-.env.local
-
+# VSCode
+.vscode/

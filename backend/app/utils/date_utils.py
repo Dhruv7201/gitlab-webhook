@@ -1,20 +1,34 @@
 from datetime import datetime, timedelta
 from dateutil import tz
 
-def convert_to_ISC(date): # this function is used to convert the date to the ISC timezone
-    if date == None:
+def convert_to_ISC(date):  # This function is used to convert the date to the ISC timezone
+    if date is None:
         return date
-    from_zone = tz.tzutc()
-    to_zone = tz.tzlocal()
-    utc = datetime.strptime(date[:-4], "%Y-%m-%d %H:%M:%S")if 'UTC' in date else datetime.strptime(date, "%Y-%m-%d")
 
-    # Tell the datetime object that it's in UTC time zone since 
-    # datetime objects are 'naive' by default
-    utc = utc.replace(tzinfo=from_zone)
+    # Timezones
+    from_zone = tz.tzutc()  # UTC timezone
+    to_zone = tz.tzlocal()  # Local timezone (should automatically detect your local timezone)
 
-    # Convert time zone
-    central = utc.astimezone(to_zone)
-    return central
+    # Parse the date string based on its format
+    if len(date) == 10:
+        # Handle date-only format
+        utc = datetime.strptime(date, "%Y-%m-%d")
+    elif '+' in date:
+        # Extract the date portion if it's in UTC and has a timezone offset
+        utc = datetime.strptime(date.split(' ')[0], "%Y-%m-%d")
+    else:
+        # Handle date in UTC or just in plain format
+        if 'UTC' in date:
+            utc = datetime.strptime(date[:-4], "%Y-%m-%d %H:%M:%S")
+        else:
+            utc = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+
+    # Localize the datetime to UTC
+    utc = utc.replace(tzinfo=from_zone)  # Make it timezone-aware
+
+    # Convert to local time zone
+    local_time = utc.astimezone(to_zone)
+    return local_time
 
 def parse_ISC_datetime(isc_date_str): # this function is used to parse the date in the ISC timezone
     # Define ISC time zone (UTC+5:30)

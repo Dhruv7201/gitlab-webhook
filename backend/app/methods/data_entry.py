@@ -223,7 +223,17 @@ def push_assign(id, previous_assign, current_assign, project_id, db):
         assign_arr = issue['assign']
         
         assign_arr[-1]['end_time'] = curr_time
-        assign_arr[-1]['start_time'] = datetime.strptime(assign_arr[-1]['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
+        print(assign_arr[-1]['start_time'])
+        start_time = assign_arr[-1]['start_time']
+
+        if isinstance(start_time, datetime):
+            start_time = start_time.isoformat()  # Convert datetime to ISO 8601 string
+        # Check for 'T' in the string version
+        if 'T' not in start_time:
+            start_time = str(start_time).replace(' ', 'T')
+        if not isinstance(assign_arr[-1]['start_time'], datetime):
+            assign_arr[-1]['start_time'] = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%f')
+
         assign_arr[-1]['duration'] = (assign_arr[-1]['end_time'] - assign_arr[-1]['start_time']).total_seconds()
         if current_assign != []:
             new_assign = {'user_id' : current_assign[0]['id'], 'start_time':curr_time, 'end_time':None, 'duration':None}
