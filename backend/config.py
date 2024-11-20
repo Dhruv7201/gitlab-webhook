@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 
+
 class Config:
     def __init__(self):
         load_dotenv()
@@ -10,7 +11,6 @@ class Config:
         self.DATABASE_URL = os.getenv("DATABASE_URL")
         self.SECRET_KEY = os.getenv("SECRET_KEY")
 
-
     @staticmethod
     def str_to_bool(value):
-        return value.lower() in ('true', '1', 't', 'y', 'yes')
+        return value.lower() in ("true", "1", "t", "y", "yes")

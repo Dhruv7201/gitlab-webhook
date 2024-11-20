@@ -16,7 +16,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_access_token(data={"sub": user["username"], "level": user["level"]})
+    access_token = create_access_token(
+        data={"sub": user["username"], "level": user["level"]}
+    )
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -27,7 +29,7 @@ async def verify_token(request: dict):
     else:
         print("Token is invalid")
         raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid token",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

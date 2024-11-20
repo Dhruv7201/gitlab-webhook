@@ -16,7 +16,10 @@ app.add_middleware(
 # Define the IPs you want to block
 BLOCKED_IPS = {"192.168.0.121", "192.168.0.202"}
 
-class BlockIPMiddleware(BaseHTTPMiddleware): # this will be used to block the IP addresses it will give the 403 forbidden error
+
+class BlockIPMiddleware(
+    BaseHTTPMiddleware
+):  # this will be used to block the IP addresses it will give the 403 forbidden error
     async def dispatch(self, request: Request, call_next):
         client_ip = request.client.host
         if client_ip in BLOCKED_IPS:
@@ -25,21 +28,23 @@ class BlockIPMiddleware(BaseHTTPMiddleware): # this will be used to block the IP
             # Return a simple error message
             return JSONResponse(
                 status_code=403,
-                content={"status": False, "data": list([]), "message": "Forbidden"}
+                content={"status": False, "data": list([]), "message": "Forbidden"},
             )
-            
+
         response = await call_next(request)
         return response
 
+
 # Add the middleware to the FastAPI app
-app.add_middleware(BlockIPMiddleware) # adding the middleware to the app for blocking the IP addresses
+app.add_middleware(
+    BlockIPMiddleware
+)  # adding the middleware to the app for blocking the IP addresses
 
 
-''' 
+""" 
 this will be used to register the routers to the app
 importing here to avoid circular imports
-'''
+"""
 from app.routes import register_routers
 
 register_routers(app)
-

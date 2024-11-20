@@ -4,6 +4,7 @@ from config import Config
 
 if __name__ == "__main__":
     import uvicorn
+
     config = Config()
     backend_host = config.BACKEND_HOST
     backend_port = int(config.BACKEND_PORT)
