@@ -12,7 +12,7 @@ ISSUE_ID = "gid://gitlab/Issue/12911"
 
 headers = {
     "Authorization": f"Bearer {ACCESS_TOKEN}",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
 }
 
 query = """
@@ -39,11 +39,12 @@ query issueTimeTrackingReport($id: IssueID!) {
 }
 """
 
+
 def fetch_timelogs(issue_id):
     payload = {
         "operationName": "issueTimeTrackingReport",
         "variables": {"id": issue_id},
-        "query": query
+        "query": query,
     }
 
     response = requests.post(BASE_URL, headers=headers, json=payload)
@@ -54,27 +55,29 @@ def fetch_timelogs(issue_id):
     else:
         raise Exception(f"Error fetching timelogs: {response_data}")
 
+
 def format_timelogs(timelogs):
     report = []
     total_time_spent = 0
 
     for log in timelogs:
-        spent_at = datetime.strptime(log["spentAt"], "%Y-%m-%dT%H:%M:%S%z").strftime("%d %b %Y")
+        spent_at = datetime.strptime(log["spentAt"], "%Y-%m-%dT%H:%M:%S%z").strftime(
+            "%d %b %Y"
+        )
         time_spent_hours = log["timeSpent"] / 3600
         total_time_spent += time_spent_hours
-        report.append({
-            "Date": spent_at,
-            "Time Spent": f"{time_spent_hours}h",
-            "User": log["user"]["name"],
-            "Summary": log["summary"] or ""
-        })
+        report.append(
+            {
+                "Date": spent_at,
+                "Time Spent": f"{time_spent_hours}h",
+                "User": log["user"]["name"],
+                "Summary": log["summary"] or "",
+            }
+        )
 
-    report.append({
-        "Date": "",
-        "Time Spent": f"{total_time_spent}h",
-        "User": "",
-        "Summary": ""
-    })
+    report.append(
+        {"Date": "", "Time Spent": f"{total_time_spent}h", "User": "", "Summary": ""}
+    )
 
     return report
 
