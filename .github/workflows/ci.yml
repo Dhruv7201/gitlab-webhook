@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DEPLOY_PASSWORD }}" | docker login -u ${{ secrets.DEPLOY_USER }} --password-stdin
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Build backend image
+        run: |
+          cd backend
+          docker build --pull -t ${{ secrets.CONTAINER_TEST_IMAGE_BACKEND }} -f Dockerfile .
+  release-backend:
+    needs: build-backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DEPLOY_PASSWORD }}" | docker login -u ${{ secrets.DEPLOY_USER }} --password-stdin
+      - name: Tag and push backend release image
+        run: |
+          docker tag ${{ secrets.CONTAINER_TEST_IMAGE_BACKEND }} ${{ secrets.CONTAINER_RELEASE_IMAGE_BACKEND }}
+          docker push ${{ secrets.CONTAINER_RELEASE_IMAGE_BACKEND }}
+  deploy-backend:
+    needs: release-backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install curl
+        run: sudo apt-get install -y curl
+      - name: Deploy backend to Portainer
+        run: curl -XPOST ${{ secrets.CD_URL_BACKEND }}
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DEPLOY_PASSWORD }}" | docker login -u ${{ secrets.DEPLOY_USER }} --password-stdin
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Build frontend image
+        run: |
+          cd frontend
+          docker build --pull -t ${{ secrets.CONTAINER_TEST_IMAGE_FRONTEND }} -f Dockerfile .
+  release-frontend:
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DEPLOY_PASSWORD }}" | docker login -u ${{ secrets.DEPLOY_USER }} --password-stdin
+      - name: Tag and push frontend release image
+        run: |
+          docker tag ${{ secrets.CONTAINER_TEST_IMAGE_FRONTEND }} ${{ secrets.CONTAINER_RELEASE_IMAGE_FRONTEND }}
+          docker push ${{ secrets.CONTAINER_RELEASE_IMAGE_FRONTEND }}
+  deploy-frontend:
+    needs: release-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install curl
+        run: sudo apt-get install -y curl
+      - name: Deploy frontend to Portainer
+        run: curl -XPOST ${{ secrets.CD_URL_FRONTEND }}
