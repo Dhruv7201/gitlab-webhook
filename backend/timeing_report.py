@@ -1,92 +1,95 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
-
-BASE_URL = "https://code.ethicsinfotech.in/api/graphql"
-ACCESS_TOKEN = os.getenv("GITLAB_KEY")
-ISSUE_ID = "gid://gitlab/Issue/12911"
-
-headers = {
-    "Authorization": f"Bearer {ACCESS_TOKEN}",
-    "Content-Type": "application/json",
-}
-
-query = """
-query issueTimeTrackingReport($id: IssueID!) {
-  issuable: issue(id: $id) {
-    id
-    title
-    timelogs {
-      nodes {
-        id
-        timeSpent
-        user {
-          id
-          name
-        }
-        spentAt
-        note {
-          body
-        }
-        summary
-      }
-    }
-  }
-}
-"""
+# URL of the API
+api_url = "https://code.ethicsinfotech.in/api/v4/projects/834/issues/1/notes"
+now = datetime.now()
+end_time = now.strftime("%Y-%m-%dT%H:%M:%S")
+start_time = (now - timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%S")
+print(f"Fetching data from {start_time} to {end_time}")
 
 
-def fetch_timelogs(issue_id):
-    payload = {
-        "operationName": "issueTimeTrackingReport",
-        "variables": {"id": issue_id},
-        "query": query,
-    }
+# Function to fetch and filter the data by time
+def fetch_and_format_data(api_url, start_time, end_time):
+    headers = {"PRIVATE-TOKEN": os.getenv("GITLAB_KEY")}
 
-    response = requests.post(BASE_URL, headers=headers, json=payload)
-    response_data = response.json()
+    # Send a GET request to the API to get all notes
+    response = requests.get(api_url, headers=headers)
 
-    if "data" in response_data and "issuable" in response_data["data"]:
-        return response_data["data"]["issuable"]["timelogs"]["nodes"]
-    else:
-        raise Exception(f"Error fetching timelogs: {response_data}")
+    # Check if the request was successful
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch data. Status code: {response.status_code}")
+
+    # Parse the JSON response
+    data = response.json()
+
+    # List to hold the formatted data
+    formatted_data = []
+
+    for note in data:
+        # Extract the created_at timestamp and check if it falls within the last 15 minutes
+        created_at = datetime.strptime(note["created_at"], "%Y-%m-%dT%H:%M:%S.%f+05:30")
+
+        # Filter notes based on time (if the note was created within the last 15 minutes)
+        if created_at >= datetime.strptime(
+            start_time, "%Y-%m-%dT%H:%M:%S"
+        ) and created_at <= datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S"):
+            # Extracting relevant fields
+            body = note["body"]
+
+            # Check if the body contains a "spent at" date and extract it
+            spent_at_match = re.search(r"at (\d{4}-\d{2}-\d{2})", body)
+            if spent_at_match:
+                # Extract the date from the "spent at" part
+                formatted_date = spent_at_match.group(1)
+                # Remove the "spent at" and keep only the time spent
+                time_spent = body.split(" at ")[0].replace("added ", "")
+                # Format to dd MMM YYYY
+                formatted_date = datetime.strptime(formatted_date, "%Y-%m-%d").strftime(
+                    "%d %b %Y"
+                )
+            else:
+                # If no "spent at" date, use the created_at timestamp
+                formatted_date = created_at.strftime("%d %b %Y")
+                time_spent = body.replace("added ", "")  # Clean up the "added" word
+
+            # Extract user name and user_id
+            user = note["author"]["name"]
+            user_id = note["author"]["id"]
+
+            # Get the user email from the user ID
+            user_url = f"https://code.ethicsinfotech.in/api/v4/users/{user_id}"
+            user_response = requests.get(user_url, headers=headers)
+            if user_response.status_code == 200:
+                user_data = user_response.json()
+                user_email = user_data.get("email", "N/A")
+            else:
+                user_email = "N/A"
+
+            summary = note.get("description", body[:50])
+
+            # Append formatted data to the list
+            formatted_data.append(
+                {
+                    "Date": formatted_date,
+                    "Time Spent": time_spent,
+                    "Email": user_email,
+                    "User": user,
+                    "Summary": summary,
+                }
+            )
+
+    return formatted_data
 
 
-def format_timelogs(timelogs):
-    report = []
-    total_time_spent = 0
+# Call the function and get the formatted data
+formatted_data = fetch_and_format_data(api_url, start_time, end_time)
 
-    for log in timelogs:
-        spent_at = datetime.strptime(log["spentAt"], "%Y-%m-%dT%H:%M:%S%z").strftime(
-            "%d %b %Y"
-        )
-        time_spent_hours = log["timeSpent"] / 3600
-        total_time_spent += time_spent_hours
-        report.append(
-            {
-                "Date": spent_at,
-                "Time Spent": f"{time_spent_hours}h",
-                "User": log["user"]["name"],
-                "Summary": log["summary"] or "",
-            }
-        )
-
-    report.append(
-        {"Date": "", "Time Spent": f"{total_time_spent}h", "User": "", "Summary": ""}
-    )
-
-    return report
-
-
-if __name__ == "__main__":
-    try:
-        timelogs = fetch_timelogs(ISSUE_ID)
-        report = format_timelogs(timelogs)
-        print("Report fetched successfully!")
-        print(report)
-    except Exception as e:
-        print(f"Error: {e}")
+# Print the formatted data
+for entry in formatted_data:
+    print(entry)

@@ -3,6 +3,15 @@ from datetime import datetime, timedelta
 import os
 from jose import JWTError, jwt
 import bcrypt
+from pydantic import BaseModel
+
+
+class UserSchema(BaseModel):
+    username: str
+    name: str
+    email: str
+    password: str
+    level: str
 
 
 def hash_password(password: str) -> str:
@@ -16,7 +25,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_user(collection, user):
-    user["password"] = hash_password(user["password"])
+    if isinstance(user, UserSchema):
+        print("User is a valid UserSchema")
+        user.password = hash_password(user.password)
+    else:
+        user["password"] = hash_password(user["password"])
     collection.insert_one(user.dict())
 
 
@@ -50,3 +63,19 @@ def validate_token(request: dict):
     except JWTError as e:
         print(e)
         return False
+
+
+def check_admin():
+    db = next(get_connection())
+    user_collection = db["login"]
+    admin = user_collection.find_one({"username": "admin"})
+    user = UserSchema(
+        username="admin",
+        name="Admin User",
+        email="admin@localhost.com",
+        password="admin",
+        level="admin",
+    )
+    if not admin:
+        create_user(user_collection, user)
+        print("Admin user created successfully")

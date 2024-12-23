@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
+from app.methods.auth import check_admin
 
 
 app = FastAPI()
@@ -48,3 +49,4 @@ importing here to avoid circular imports
 from app.routes import register_routers
 
 register_routers(app)
+check_admin()
