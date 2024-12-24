@@ -4,10 +4,7 @@ import EditableDropdown from "@/components/_ui/EditableDropdown";
 import { DatePicker } from "@/utils/DatePicker";
 import api from "@/utils/api";
 import { format } from "date-fns";
-import { useReactTable } from "@tanstack/react-table";
-import { getCoreRowModel } from "@tanstack/react-table";
-import { createColumnHelper } from "@tanstack/react-table";
-import { flexRender } from "@tanstack/react-table";
+import { useReactTable, flexRender,createColumnHelper, getCoreRowModel } from "@tanstack/react-table";
 
 const ReleasePlan = () => {
   const [data, setData] = React.useState<any[]>([]);

@@ -75,8 +75,8 @@ const UserProjectData = () => {
         <option value="" disabled>
           Choose user
         </option>
-        {users.map((user, index) => (
-          <option key={index} value={user.username} className="text-gray-900">
+        {users.map((user) => (
+          <option key={user.id} value={user.username} className="text-gray-900">
             {user.name}
           </option>
         ))}

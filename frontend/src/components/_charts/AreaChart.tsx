@@ -14,7 +14,6 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
 } from "@/components/_ui/chart";
 import { DateRange } from "react-day-picker";
 
@@ -46,7 +45,7 @@ const BarChartCom: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const navigate = useNavigate();
 
   const handleBarClick = (data: any) => {
-    if (data && data.user_id) {
+    if (data?.user_id) {
       navigate(`/user/${data.user_id}`);
     }
   };

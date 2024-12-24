@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { validateToken } from "@/utils/api";
-import api from "@/utils/api";
+import api, { validateToken } from "@/utils/api";
 
 // Define RepoList type with proper nesting for subgroups
 type RepoList = {

@@ -17,9 +17,7 @@ import {
 } from "@/components/_ui/card";
 import {
   ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
+  ChartContainer
 } from "@/components/_ui/chart";
 import { secondsToHMSorDays } from "@/utils/timeFormate";
 import { useNavigate } from "react-router-dom";
@@ -48,7 +46,7 @@ const Barchart: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
   const navigate = useNavigate();
 
   const handleBarClick = (data: any) => {
-    if (data && data.user_id) {
+    if (data?.user_id) {
       navigate(`/user/${data.user_id}`);
     }
   };
@@ -71,9 +69,9 @@ const Barchart: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
         console.error(error);
 
         if (
-          error.response &&
-          error.response.data &&
-          error.response.data.detail
+          error?.response &&
+          error?.response?.data &&
+          error?.response?.data?.detail
         ) {
           const detail = error.response.data.detail;
           Notification({ message: detail.message, type: "error" });

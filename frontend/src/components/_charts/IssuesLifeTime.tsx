@@ -20,7 +20,6 @@ import {
 import {
   ChartConfig,
   ChartContainer,
-  ChartTooltipContent,
 } from "@/components/_ui/chart";
 import { secondsToHMSorDays } from "@/utils/timeFormate";
 import { DateRange } from "react-day-picker";
@@ -166,7 +165,7 @@ const IssuesLifeTime: React.FC<Props> = ({ selectedProjectId, dateRange }) => {
         setChartData(transformedData);
         setChartConfig(dynamicChartConfig);
       })
-      .catch((_error: any) => {
+      .catch(() => {
         Notification({ message: "Problem fetching issues", type: "error" });
       });
   }, [selectedProjectId, selectedMilestone, dateRange]);

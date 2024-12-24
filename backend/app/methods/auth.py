@@ -4,6 +4,7 @@ import os
 from jose import JWTError, jwt
 import bcrypt
 from pydantic import BaseModel
+from datetime import timezone
 
 
 class UserSchema(BaseModel):
@@ -46,7 +47,7 @@ def authenticate_user(username, password):
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(hours=3)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=30)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, os.getenv("SECRET_KEY"), algorithm="HS256")
     return encoded_jwt
@@ -58,7 +59,6 @@ def validate_token(request: dict):
         if token.startswith("Bearer "):
             token = token[len("Bearer ") :]
 
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=["HS256"])
         return True
     except JWTError as e:
         print(e)

@@ -28,7 +28,7 @@ def insertReOpen(issue_id, count, db):
         issue_collection.update_one(filter, update)
 
 
-def reOpenIncrement(issue_id, db):
+def re_open_increment(issue_id, db):
     """
     To increment the Re-Open count by 1 to check how many times the cycle of reopen has happened
     """
@@ -36,8 +36,8 @@ def reOpenIncrement(issue_id, db):
     issue_collection = db["issues"]
     filter = {"id": issue_id}
     curr_issue = issue_collection.find_one(filter)
-    currReOpen = curr_issue["Re-Open"]
-    update = {"$set": {"Re-Open": currReOpen + 1}}
+    curr_re_open = curr_issue["Re-Open"]
+    update = {"$set": {"Re-Open": curr_re_open + 1}}
     issue_collection.update_one(filter, update)
 
 
@@ -490,7 +490,7 @@ def end_qa_assign(payload, db):
     issue_collection.update_one(filter, update)
 
 
-def onHold(payload, db):
+def on_hold(payload, db):
     """set OnHold to 1 if already 1 then add 1"""
     issue_collection = db["issues"]
     filter = {"id": payload["object_attributes"]["id"]}
